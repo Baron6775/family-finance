@@ -18,7 +18,6 @@
         line-height: 1.5;
     }
 
-    /* ===== Экран входа ===== */
     .login-screen {
         position: fixed;
         inset: 0;
@@ -219,7 +218,6 @@
     .debt-row .amt.owed { color: #4cff9a; }
     .debt-hint { text-align: center; color: #6b7280; font-size: 13px; padding: 10px; }
 
-    /* КРЕДИТЫ */
     .loan-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 14px; }
     .loan-summary .item { padding: 12px; border-radius: 10px; border: 1px solid #2c3138; background: #1e2228; }
     .loan-summary .item .label { font-size: 11px; color: #8b929c; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
@@ -245,27 +243,6 @@
     .loan-card .info-item .v { color: #ffffff; font-weight: 600; font-variant-numeric: tabular-nums; }
     .loan-card .actions { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 14px; border-top: 1px solid #262b33; }
     .loan-card .actions button { flex: 1 1 auto; }
-
-    /* Аналитика кредитов */
-    .analytics-row {
-        display: grid;
-        grid-template-columns: 2fr 1fr 1fr;
-        gap: 10px;
-        align-items: center;
-        padding: 10px 12px;
-        border-radius: 8px;
-        background: #1e2228;
-        border: 1px solid #2c3138;
-        margin-bottom: 6px;
-        font-size: 14px;
-    }
-    .analytics-row .name { font-weight: 600; color: #ffffff; }
-    .analytics-row .num { text-align: right; font-variant-numeric: tabular-nums; }
-    .analytics-row .num.interest { color: #ffc84c; }
-    .analytics-row .num.body { color: #ff6b6b; }
-    .analytics-row .num.total { color: #ffffff; font-weight: 700; }
-    .analytics-row.header { background: transparent; border: none; padding: 6px 12px; font-size: 11px; color: #8b929c; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
-    .analytics-row.header .num { color: #8b929c; }
 
     .cat-section-title { font-size: 13px; color: #8b929c; text-transform: uppercase; letter-spacing: 0.5px; margin: 18px 0 10px; font-weight: 600; }
     .cat-section-title:first-child { margin-top: 0; }
@@ -326,7 +303,6 @@
     .schedule-table td:first-child, .schedule-table th:first-child { text-align: left; }
     .schedule-table tr.next { background: rgba(76, 141, 255, 0.08); }
 
-    /* Калькулятор досрочки */
     .calc-strategy {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -364,7 +340,6 @@
     .calc-strategy .line .k { color: #8b929c; }
     .calc-strategy .line .v { font-weight: 600; font-variant-numeric: tabular-nums; }
 
-    /* Печать PDF */
     @media print {
         body { background: #ffffff; color: #000000; padding: 0; max-width: 100%; }
         .card { background: #ffffff; border: 1px solid #cccccc; }
@@ -395,9 +370,6 @@
         .loan-card .actions button { width: 100%; }
 
         .calc-strategy { grid-template-columns: 1fr; }
-
-        .analytics-row { grid-template-columns: 1fr; gap: 4px; }
-        .analytics-row .num { text-align: left; }
 
         .modal .actions { flex-direction: column; }
         .modal .actions button { width: 100%; }
@@ -642,56 +614,6 @@
     <div id="loansList"></div>
 
     <button class="ghost full" style="margin-top:8px" onclick="exportLoansCSV()">📥 Экспорт кредитов в CSV</button>
-</div>
-
-<!-- ===== Аналитика кредитов ===== -->
-<div class="card">
-    <h2>📊 Аналитика по кредитам</h2>
-
-    <div class="loan-summary">
-        <div class="item">
-            <div class="label">Изначально занято</div>
-            <div class="value white" id="anaTotalInitial">— ₽</div>
-        </div>
-        <div class="item">
-            <div class="label">Всего отдадите</div>
-            <div class="value red" id="anaTotalFinal">— ₽</div>
-        </div>
-        <div class="item">
-            <div class="label">Из них проценты</div>
-            <div class="value yellow" id="anaTotalInterest">— ₽</div>
-        </div>
-        <div class="item">
-            <div class="label">Переплата</div>
-            <div class="value yellow" id="anaOverpay">— ₽</div>
-        </div>
-        <div class="item">
-            <div class="label">% от дохода/мес</div>
-            <div class="value blue" id="anaIncomeShare">— %</div>
-        </div>
-    </div>
-
-    <div class="cat-section-title">Разбивка по кредитам</div>
-    <div id="anaLoansList"></div>
-
-    <div class="cat-section-title">Сравнение с доходами</div>
-    <div class="stats">
-        <div class="stat">
-            <div class="label">За текущий месяц</div>
-            <div class="value income" id="anaMonthIncome">— ₽</div>
-            <div class="delta flat" id="anaMonthDelta">платежи: — ₽</div>
-        </div>
-        <div class="stat">
-            <div class="label">За год</div>
-            <div class="value income" id="anaYearIncome">— ₽</div>
-            <div class="delta flat" id="anaYearDelta">платежи: — ₽</div>
-        </div>
-        <div class="stat">
-            <div class="label">За всё время</div>
-            <div class="value income" id="anaAllIncome">— ₽</div>
-            <div class="delta flat" id="anaAllDelta">платежи: — ₽</div>
-        </div>
-    </div>
 </div>
 
 <!-- ===== Калькулятор досрочки ===== -->
@@ -2003,77 +1925,6 @@ function confirmPrepay() {
 }
 
 /* ============================================================
-   АНАЛИТИКА КРЕДИТОВ
-   ============================================================ */
-function renderLoanAnalytics() {
-    let totalInitial = 0, totalInterest = 0, totalBody = 0;
-
-    LOANS.forEach(loan => {
-        totalInitial += loan.initialAmount;
-        totalInterest += loan.interestRemaining;
-        totalBody += loan.bodyDebt;
-    });
-
-    const totalFinal = totalBody + totalInterest;
-    const overpay = totalFinal - totalInitial;
-
-    document.getElementById('anaTotalInitial').textContent = fmt(totalInitial);
-    document.getElementById('anaTotalFinal').textContent = fmt(totalFinal);
-    document.getElementById('anaTotalInterest').textContent = fmt(totalInterest);
-    document.getElementById('anaOverpay').textContent = fmt(overpay > 0 ? overpay : 0);
-
-    // % от дохода текущего месяца
-    const monthItems = getMonthItems(currentYear, currentMonth);
-    const monthIncome = sumIncomes(monthItems);
-    const monthLoanPayments = monthItems
-        .filter(it => it.type === 'loan-payment')
-        .reduce((s, it) => s + Number(it.amount || 0), 0);
-
-    const monthlyLoanSum = LOANS.reduce((s, l) => s + l.monthlyPayment, 0);
-    const sharePercent = monthIncome > 0 ? (monthlyLoanSum / monthIncome) * 100 : 0;
-    document.getElementById('anaIncomeShare').textContent = sharePercent.toFixed(1) + '%';
-
-    // Разбивка по кредитам
-    const listEl = document.getElementById('anaLoansList');
-    let html = `
-        <div class="analytics-row header">
-            <div>Кредит</div>
-            <div class="num">Проценты до конца</div>
-            <div class="num">Итого к выплате</div>
-        </div>
-    `;
-
-    LOANS.forEach(loan => {
-        const total = loan.bodyDebt + loan.interestRemaining + loan.penalty;
-        html += `
-            <div class="analytics-row">
-                <div class="name">🏦 ${escapeHtml(loan.name)}</div>
-                <div class="num interest">${fmt(loan.interestRemaining)}</div>
-                <div class="num total">${fmt(total)}</div>
-            </div>
-        `;
-    });
-
-    listEl.innerHTML = html;
-
-    // Сравнение с доходами
-    const yearItems = getYearItems(currentYear);
-    const yearIncome = sumIncomes(yearItems);
-
-    const allItems = items.slice();
-    const allIncome = sumIncomes(allItems);
-
-    document.getElementById('anaMonthIncome').textContent = fmt(monthIncome);
-    document.getElementById('anaMonthDelta').textContent = 'платежи: ' + fmt(monthlyLoanSum);
-
-    document.getElementById('anaYearIncome').textContent = fmt(yearIncome);
-    document.getElementById('anaYearDelta').textContent = 'платежи: ' + fmt(monthlyLoanSum * 12);
-
-    document.getElementById('anaAllIncome').textContent = fmt(allIncome);
-    document.getElementById('anaAllDelta').textContent = 'платежи: ' + fmt(monthlyLoanSum * 12 * 5);
-}
-
-/* ============================================================
    КАЛЬКУЛЯТОР ДОСРОЧКИ
    ============================================================ */
 function initCalcLoans() {
@@ -2094,7 +1945,6 @@ function calcPrepayStrategy() {
     const monthlyRate = loan.rate / 100 / 12;
     const oldCloseDate = new Date(loan.closeDate);
 
-    // === Вариант 1: уменьшить срок ===
     const newBodyTerm = Math.max(0, oldBody - amount);
     let newMonthsTerm = 0;
     let savingsTerm = 0;
@@ -2113,7 +1963,6 @@ function calcPrepayStrategy() {
         newCloseTerm = new Date();
     }
 
-    // === Вариант 2: уменьшить платёж ===
     const monthsLeft = monthsBetween(new Date(loan.nextPaymentDate), oldCloseDate);
     let newMonthlyPay = oldMonthly;
     let savingsPay = 0;
@@ -2137,7 +1986,6 @@ function calcPrepayStrategy() {
     document.getElementById('calcNewClosePay').textContent = formatDateRu(oldCloseDate.toISOString().slice(0, 10));
     document.getElementById('calcMonthlyPay').textContent = fmt2(newMonthlyPay) + ' / мес';
 
-    // Подсвечиваем выгодный вариант
     const cards = document.querySelectorAll('.calc-strategy .strategy-card');
     cards.forEach(c => c.classList.remove('best'));
     if (savingsTerm >= savingsPay) cards[0].classList.add('best');
@@ -2186,7 +2034,6 @@ function exportLoansCSV() {
 }
 
 function exportFullReport() {
-    // Готовим красивое окно для печати
     const printWindow = window.open('', '_blank');
 
     let loansRows = '';
@@ -2276,7 +2123,6 @@ function renderAll() {
     renderDebts();
     renderLoans();
     renderLoanSummary();
-    renderLoanAnalytics();
     renderPeople();
     renderCategories();
     renderYearStats();
