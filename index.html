@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Семейные финансы — Андрей и Леруська</title>
+<style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 16px;
+        background: #121417;
+        color: #e8eaed;
+        font-size: 16px;
+        line-height: 1.5;
+    }
+
+    h1 {
+        color: #ffffff;
+        font-size: 22px;
+        margin: 0 0 6px;
+        text-align: center;
+    }
+
+    .subtitle {
+        text-align: center;
+        color: #8b929c;
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+
+    h2 {
+        color: #ffffff;
+        font-size: 17px;
+        margin: 0 0 14px;
+    }
+
+    .card {
+        background: #1a1e24;
+        border: 1px solid #2c3138;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+
+    .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    label {
+        display: block;
+        font-size: 13px;
+        color: #8b929c;
+        margin-bottom: 4px;
+    }
+
+    input, select {
+        width: 100%;
+        padding: 12px;
+        font-size: 16px; /* 16px чтобы iOS не зумил при фокусе */
+        color: #ffffff;
+        background: #1e2228;
+        border: 1px solid #3a4048;
+        border-radius: 8px;
+        outline: none;
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    input::placeholder { color: #8b929c; }
+
+    input:focus, select:focus {
+        border-color: #4c8dff;
+        box-shadow: 0 0 0 3px rgba(76, 141, 255, 0.25);
+    }
+
+    .field { flex: 1 1 140px; min-width: 0; }
+    .field.wide { flex: 2 1 200px; }
+
+    button {
+        padding: 12px 18px;
+        font-size: 15px;
+        font-weight: 600;
+        color: #ffffff;
+        background: #2b6cff;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.15s, transform 0.05s;
+    }
+
+    button:hover { background: #4c8dff; }
+    button:active { transform: scale(0.97); }
+
+    button.ghost {
+        background: transparent;
+        color: #8b929c;
+        border: 1px solid #3a4048;
+    }
+    button.ghost:hover { background: #1e2228; color: #ffffff; }
+
+    button.full { width: 100%; }
+
+    .month-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+
+    .month-nav button { padding: 8px 12px; font-size: 14px; flex: 0 0 auto; }
+
+    .month-label {
+        font-size: 16px;
+        font-weight: 700;
+        color: #ffffff;
+        text-align: center;
+        flex: 1;
+    }
+
+    .owner-filter {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+    }
+
+    .owner-filter button {
+        padding: 8px 14px;
+        font-size: 14px;
+        background: #1e2228;
+        color: #8b929c;
+        border: 1px solid #3a4048;
+        flex: 1 1 auto;
+    }
+
+    .owner-filter button.active {
+        background: #2b6cff;
+        color: #ffffff;
+        border-color: #2b6cff;
+    }
+
+    /* --- Таблица: на телефоне превращается в карточки --- */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    th, td {
+        padding: 10px 8px;
+        text-align: left;
+        border-bottom: 1px solid #2c3138;
+    }
+
+    th {
+        color: #8b929c;
+        font-weight: 600;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    td.amount { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    td.amount.income { color: #4cff9a; }
+    td.amount.expense { color: #ff6b6b; }
+
+    td.actions { text-align: right; width: 50px; }
+
+    td.actions button {
+        padding: 6px 10px;
+        font-size: 14px;
+        background: #3a2024;
+        color: #ff6b6b;
+        border: 1px solid #5a2a2f;
+    }
+    td.actions button:hover { background: #5a2a2f; color: #ff9a9a; }
+
+    .empty {
+        text-align: center;
+        color: #6b7280;
+        padding: 30px 10px;
+        font-size: 14px;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .badge.andrey { background: rgba(76, 141, 255, 0.15); color: #6ba8ff; border: 1px solid rgba(76, 141, 255, 0.35); }
+    .badge.lera   { background: rgba(255, 141, 220, 0.15); color: #ff8ddc; border: 1px solid rgba(255, 141, 220, 0.35); }
+    .badge.shared { background: rgba(255, 200, 76, 0.15); color: #ffc84c; border: 1px solid rgba(255, 200, 76, 0.35); }
+
+    .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 10px;
+        margin-top: 12px;
+    }
+
+    .stat {
+        background: #1e2228;
+        border: 1px solid #2c3138;
+        border-radius: 10px;
+        padding: 12px;
+    }
+
+    .stat .label {
+        font-size: 11px;
+        color: #8b929c;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 6px;
+    }
+
+    .stat .value {
+        font-size: 18px;
+        font-weight: 700;
+        color: #ffffff;
+        font-variant-numeric: tabular-nums;
+        word-break: break-word;
+    }
+
+    .stat .value.income { color: #4cff9a; }
+    .stat .value.expense { color: #ff6b6b; }
+
+    .delta {
+        font-size: 12px;
+        margin-top: 4px;
+        font-weight: 600;
+    }
+    .delta.up { color: #4cff9a; }
+    .delta.down { color: #ff6b6b; }
+    .delta.flat { color: #8b929c; }
+
+    .people-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 12px;
+    }
+
+    .person-card {
+        background: #1e2228;
+        border: 1px solid #2c3138;
+        border-radius: 10px;
+        padding: 14px;
+        border-top: 3px solid #3a4048;
+    }
+
+    .person-card.andrey { border-top-color: #4c8dff; }
+    .person-card.lera   { border-top-color: #ff8ddc; }
+    .person-card.shared { border-top-color: #ffc84c; }
+
+    .person-card h3 {
+        margin: 0 0 10px;
+        font-size: 15px;
+        color: #ffffff;
+    }
+
+    .person-card .line {
+        display: flex;
+        justify-content: space-between;
+        padding: 5px 0;
+        font-size: 14px;
+        border-bottom: 1px solid #262b33;
+        gap: 8px;
+    }
+    .person-card .line:last-child { border-bottom: none; }
+
+    .person-card .line .k { color: #8b929c; }
+    .person-card .line .v { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .person-card .line .v.income { color: #4cff9a; }
+    .person-card .line .v.expense { color: #ff6b6b; }
+
+    .chart-container {
+        position: relative;
+        height: 240px;
+        margin-top: 10px;
+    }
+
+    .legend {
+        display: flex;
+        gap: 14px;
+        justify-content: center;
+        margin-top: 10px;
+        font-size: 12px;
+        color: #8b929c;
+        flex-wrap: wrap;
+    }
+
+    .legend span { display: flex; align-items: center; gap: 6px; }
+    .legend .dot { width: 12px; height: 12px; border-radius: 3px; }
+
+    .total-bar {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 14px;
+        padding: 12px;
+        background: #1e2228;
+        border: 1px solid #2c3138;
+        border-radius: 10px;
+        flex-wrap: wrap;
+    }
+
+    .total-bar .item { flex: 1 1 100px; text-align: center; }
+
+    .total-bar .item .label {
+        font-size: 11px;
+        color: #8b929c;
+        margin-bottom: 4px;
+    }
+
+    .total-bar .item .value {
+        font-size: 16px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .status {
+        text-align: center;
+        font-size: 12px;
+        color: #8b929c;
+        margin-top: 10px;
+        min-height: 16px;
+    }
+
+    .status.ok    { color: #4cff9a; }
+    .status.err   { color: #ff6b6b; }
+
+    /* --- Мобильная адаптация --- */
+    @media (max-width: 640px) {
+        body { padding: 12px; }
+        h1 { font-size: 20px; }
+        .card { padding: 14px; }
+
+        /* Таблица превращается в список карточек */
+        table, thead, tbody, th, td, tr { display: block; }
+        thead { display: none; }
+        tr {
+            background: #1e2228;
+            border: 1px solid #2c3138;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+        td {
+            border: none;
+            padding: 4px 0;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            text-align: left;
+        }
+        td::before {
+            content: attr(data-label);
+            color: #8b929c;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        td.amount { text-align: right; justify-content: space-between; }
+        td.actions { text-align: right; justify-content: flex-end; }
+        td.actions::before { content: none; }
+        td:first-child { font-weight: 600; color: #ffffff; }
+    }
+</style>
+</head>
+<body>
+
+<h1>Семейные финансы</h1>
+<div class="subtitle">Андрей & Леруська — общий учёт</div>
+
+<!-- ===== Добавление записи ===== -->
+<div class="card">
+    <h2>Добавить запись</h2>
+    <div class="row">
+        <div class="field">
+            <label>Кто</label>
+            <select id="owner">
+                <option value="andrey">Андрей</option>
+                <option value="lera">Леруська</option>
+                <option value="shared">Совместно</option>
+            </select>
+        </div>
+        <div class="field">
+            <label>Тип</label>
+            <select id="type">
+                <option value="expense">Расход</option>
+                <option value="income">Доход</option>
+            </select>
+        </div>
+        <div class="field">
+            <label>Категория</label>
+            <select id="category">
+                <option value="Продукты">Продукты</option>
+                <option value="Транспорт">Транспорт</option>
+                <option value="Жильё">Жильё</option>
+                <option value="Развлечения">Развлечения</option>
+                <option value="Здоровье">Здоровье</option>
+                <option value="Зарплата">Зарплата</option>
+                <option value="Подработка">Подработка</option>
+                <option value="Прочее">Прочее</option>
+            </select>
+        </div>
+        <div class="field wide">
+            <label>Описание</label>
+            <input id="desc" type="text" placeholder="Например: продукты в Пятёрочке">
+        </div>
+        <div class="field">
+            <label>Сумма, ₽</label>
+            <input id="amount" type="number" placeholder="0" min="0" step="0.01" inputmode="decimal">
+        </div>
+        <div class="field" style="flex:0 0 auto; align-self:flex-end;">
+            <button onclick="addItem()" style="width:100%">Добавить</button>
+        </div>
+    </div>
+    <div class="status" id="status"></div>
+</div>
+
+<!-- ===== Месяц ===== -->
+<div class="card">
+    <div class="month-nav">
+        <button class="ghost" onclick="shiftMonth(-1)">← Пред.</button>
+        <div class="month-label" id="monthLabel">—</div>
+        <button class="ghost" onclick="shiftMonth(1)">След. →</button>
+    </div>
+
+    <div class="owner-filter" id="ownerFilter">
+        <button data-owner="all" class="active">Все</button>
+        <button data-owner="andrey">Андрей</button>
+        <button data-owner="lera">Леруська</button>
+        <button data-owner="shared">Совместно</button>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Описание</th>
+                    <th>Кто</th>
+                    <th>Категория</th>
+                    <th class="amount">Сумма</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="list"></tbody>
+        </table>
+    </div>
+
+    <div class="total-bar">
+        <div class="item">
+            <div class="label">Доходы</div>
+            <div class="value" style="color:#4cff9a" id="monthIncome">0 ₽</div>
+        </div>
+        <div class="item">
+            <div class="label">Расходы</div>
+            <div class="value" style="color:#ff6b6b" id="monthExpense">0 ₽</div>
+        </div>
+        <div class="item">
+            <div class="label">Баланс</div>
+            <div class="value" id="monthBalance">0 ₽</div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== По людям ===== -->
+<div class="card">
+    <h2>Статистика месяца по людям</h2>
+    <div class="people-grid">
+        <div class="person-card andrey">
+            <h3>🔵 Андрей</h3>
+            <div class="line"><span class="k">Доходы</span><span class="v income" id="andreyIncome">0 ₽</span></div>
+            <div class="line"><span class="k">Расходы</span><span class="v expense" id="andreyExpense">0 ₽</span></div>
+            <div class="line"><span class="k">Баланс</span><span class="v" id="andreyBalance">0 ₽</span></div>
+            <div class="delta" id="andreyDelta">—</div>
+        </div>
+        <div class="person-card lera">
+            <h3>🩷 Леруська</h3>
+            <div class="line"><span class="k">Доходы</span><span class="v income" id="leraIncome">0 ₽</span></div>
+            <div class="line"><span class="k">Расходы</span><span class="v expense" id="leraExpense">0 ₽</span></div>
+            <div class="line"><span class="k">Баланс</span><span class="v" id="leraBalance">0 ₽</span></div>
+            <div class="delta" id="leraDelta">—</div>
+        </div>
+        <div class="person-card shared">
+            <h3>🟡 Совместно</h3>
+            <div class="line"><span class="k">Доходы</span><span class="v income" id="sharedIncome">0 ₽</span></div>
+            <div class="line"><span class="k">Расходы</span><span class="v expense" id="sharedExpense">0 ₽</span></div>
+            <div class="line"><span class="k">Баланс</span><span class="v" id="sharedBalance">0 ₽</span></div>
+            <div class="delta" id="sharedDelta">—</div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Общая статистика за год ===== -->
+<div class="card">
+    <h2>Годовая статистика (все вместе)</h2>
+    <div class="stats">
+        <div class="stat">
+            <div class="label">Доходы за год</div>
+            <div class="value income" id="yearIncome">0 ₽</div>
+        </div>
+        <div class="stat">
+            <div class="label">Расходы за год</div>
+            <div class="value expense" id="yearExpense">0 ₽</div>
+        </div>
+        <div class="stat">
+            <div class="label">Баланс за год</div>
+            <div class="value" id="yearBalance">0 ₽</div>
+        </div>
+        <div class="stat">
+            <div class="label">Средний расход/мес</div>
+            <div class="value expense" id="yearAvgExpense">0 ₽</div>
+        </div>
+    </div>
+
+    <h2 style="margin-top:20px">Месяц к прошлому месяцу</h2>
+    <div class="stats">
+        <div class="stat">
+            <div class="label">Доходы месяца</div>
+            <div class="value income" id="statIncome">0 ₽</div>
+            <div class="delta" id="deltaIncome">—</div>
+        </div>
+        <div class="stat">
+            <div class="label">Расходы месяца</div>
+            <div class="value expense" id="statExpense">0 ₽</div>
+            <div class="delta" id="deltaExpense">—</div>
+        </div>
+        <div class="stat">
+            <div class="label">Доходы с начала года</div>
+            <div class="value income" id="statIncomeYTD">0 ₽</div>
+            <div class="delta" id="deltaIncomeYTD">—</div>
+        </div>
+        <div class="stat">
+            <div class="label">Расходы с начала года</div>
+            <div class="value expense" id="statExpenseYTD">0 ₽</div>
+            <div class="delta" id="deltaExpenseYTD">—</div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Графики ===== -->
+<div class="card">
+    <h2>Доходы и расходы по месяцам</h2>
+    <div class="chart-container"><canvas id="chartMonthly"></canvas></div>
+    <div class="legend">
+        <span><span class="dot" style="background:#4cff9a"></span> Доходы</span>
+        <span><span class="dot" style="background:#ff6b6b"></span> Расходы</span>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Расходы по людям за год</h2>
+    <div class="chart-container"><canvas id="chartByPerson"></canvas></div>
+    <div class="legend">
+        <span><span class="dot" style="background:#4c8dff"></span> Андрей</span>
+        <span><span class="dot" style="background:#ff8ddc"></span> Леруська</span>
+        <span><span class="dot" style="background:#ffc84c"></span> Совместно</span>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Динамика с начала года</h2>
+    <div class="chart-container"><canvas id="chartYTD"></canvas></div>
+    <div class="legend">
+        <span><span class="dot" style="background:#4cff9a"></span> Доходы накопительно</span>
+        <span><span class="dot" style="background:#ff6b6b"></span> Расходы накопительно</span>
+    </div>
+</div>
+
+<button class="ghost full" style="margin-bottom:8px" onclick="exportCSV()">Экспорт в CSV</button>
+
+<!-- ============================================================
+     Firebase SDK
+     ============================================================ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+    getFirestore, collection, addDoc, deleteDoc, doc,
+    onSnapshot, query, orderBy
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+/* ============================================================
+   ⬇⬇⬇  ВСТАВЬТЕ СЮДА ВАШ firebaseConfig ИЗ КОНСОЛИ FIREBASE  ⬇⬇⬇
+   ============================================================ */
+const firebaseConfig = {
+ apiKey: "AIzaSyCfGt-rOprLVx5BKfiuWQohYNvfPDPdusk",
+ authDomain: "family-finance-72604.firebaseapp.com",
+ projectId: "family-finance-72604",
+ storageBucket: "family-finance-72604.firebasestorage.app",
+ messagingSenderId: "241336270344",
+ appId: "1:241336270344:web:cef117718df6fb49121bbd",
+ measurementId: "G-1DDWSQ0M56"
+  };
+/* ============================================================
+   ⬆⬆⬆  КОНЕЦ ВСТАВКИ  ⬆⬆⬆
+   ============================================================ */
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const COLLECTION = "transactions";
+
+/* ============================================================
+   СОСТОЯНИЕ
+   ============================================================ */
+let items = [];                      // все записи из Firestore
+let currentYear, currentMonth;       // выбранный месяц
+let ownerFilter = "all";
+
+/* Автоматически ставим текущий месяц при загрузке */
+(function initCurrentMonth() {
+    const now = new Date();
+    currentYear = now.getFullYear();
+    currentMonth = now.getMonth();
+})();
+
+/* ============================================================
+   КОНСТАНТЫ И УТИЛИТЫ
+   ============================================================ */
+const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь',
+                'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+
+const OWNER_LABEL = { andrey: 'Андрей', lera: 'Леруська', shared: 'Совместно' };
+
+function fmt(n) {
+    return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(n) + ' ₽';
+}
+
+function monthKey(y, m) {
+    return `${y}-${String(m + 1).padStart(2, '0')}`;
+}
+
+function setStatus(text, cls = '') {
+    const el = document.getElementById('status');
+    el.textContent = text;
+    el.className = 'status ' + cls;
+}
+
+/* ============================================================
+   FIRESTORE: подписка в реальном времени
+   ============================================================ */
+function subscribe() {
+    const q = query(collection(db, COLLECTION), orderBy('date', 'asc'));
+    onSnapshot(q, snap => {
+        items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setStatus('Синхронизировано', 'ok');
+        renderAll();
+    }, err => {
+        console.error(err);
+        setStatus('Ошибка подключения к Firebase: ' + err.message, 'err');
+    });
+}
+
+/* ============================================================
+   ДОБАВЛЕНИЕ / УДАЛЕНИЕ
+   ============================================================ */
+async function addItem() {
+    const desc = document.getElementById('desc').value.trim();
+    const amount = Number(document.getElementById('amount').value);
+    const type = document.getElementById('type').value;
+    const category = document.getElementById('category').value;
+    const owner = document.getElementById('owner').value;
+
+    if (!desc)   { setStatus('Введите описание', 'err'); return; }
+    if (!amount || amount <= 0) { setStatus('Введите сумму больше нуля', 'err'); return; }
+
+    const date = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`;
+
+    try {
+        setStatus('Сохранение…');
+        await addDoc(collection(db, COLLECTION), {
+            date, desc, category, amount, type, owner,
+            createdAt: Date.now()
+        });
+
+        document.getElementById('desc').value = '';
+        document.getElementById('amount').value = '';
+        setStatus('Добавлено', 'ok');
+
+        setTimeout(() => setStatus(''), 1500);
+    } catch (e) {
+        console.error(e);
+        setStatus('Ошибка сохранения: ' + e.message, 'err');
+    }
+}
+
+async function removeItem(id) {
+    if (!confirm('Удалить запись?')) return;
+    try {
+        await deleteDoc(doc(db, COLLECTION, id));
+        setStatus('Удалено', 'ok');
+        setTimeout(() => setStatus(''), 1500);
+    } catch (e) {
+        console.error(e);
+        setStatus('Ошибка удаления: ' + e.message, 'err');
+    }
+}
+
+/* ============================================================
+   НАВИГАЦИЯ
+   ============================================================ */
+function shiftMonth(delta) {
+    currentMonth += delta;
+    if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+    if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+    renderAll();
+}
+
+document.getElementById('ownerFilter').addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    ownerFilter = btn.dataset.owner;
+    document.querySelectorAll('#ownerFilter button').forEach(b =>
+        b.classList.toggle('active', b === btn)
+    );
+    renderAll();
+});
+
+/* ============================================================
+   ВЫБОРКИ
+   ============================================================ */
+function getMonthItems(y, m, owner = null) {
+    const key = monthKey(y, m);
+    return items.filter(it =>
+        it.date && it.date.startsWith(key) && (!owner || it.owner === owner)
+    );
+}
+
+function getYearItems(y, owner = null) {
+    const prefix = `${y}-`;
+    return items.filter(it =>
+        it.date && it.date.startsWith(prefix) && (!owner || it.owner === owner)
+    );
+}
+
+function sumBy(arr, type) {
+    return arr.filter(it => it.type === type)
+              .reduce((s, it) => s + Number(it.amount || 0), 0);
+}
+
+function getYearTotals(y) {
+    const result = [];
+    for (let m = 0; m < 12; m++) {
+        const mi = getMonthItems(y, m);
+        result.push({
+            month: m,
+            income: sumBy(mi, 'income'),
+            expense: sumBy(mi, 'expense')
+        });
+    }
+    return result;
+}
+
+/* ============================================================
+   ОТРИСОВКА
+   ============================================================ */
+function renderAll() {
+    renderMonth();
+    renderPeople();
+    renderYearStats();
+    renderMonthDeltas();
+    renderCharts();
+}
+
+/* -------- Таблица месяца -------- */
+function renderMonth() {
+    document.getElementById('monthLabel').textContent =
+        `${MONTHS[currentMonth]} ${currentYear}`;
+
+    const list = document.getElementById('list');
+    let monthItems = getMonthItems(currentYear, currentMonth);
+
+    if (ownerFilter !== 'all') {
+        monthItems = monthItems.filter(it => it.owner === ownerFilter);
+    }
+
+    monthItems.sort((a, b) => Number(b.amount) - Number(a.amount));
+
+    if (monthItems.length === 0) {
+        list.innerHTML = `<tr><td colspan="5" class="empty">Нет записей за этот месяц</td></tr>`;
+    } else {
+        list.innerHTML = monthItems.map(it => `
+            <tr>
+                <td data-label="Описание">${escapeHtml(it.desc)}</td>
+                <td data-label="Кто"><span class="badge ${it.owner}">${OWNER_LABEL[it.owner] || it.owner}</span></td>
+                <td data-label="Категория">${escapeHtml(it.category)}</td>
+                <td data-label="Сумма" class="amount ${it.type}">
+                    ${it.type === 'income' ? '+' : '−'} ${fmt(it.amount)}
+                </td>
+                <td class="actions">
+                    <button onclick="removeItem('${it.id}')">✕</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    const income = sumBy(monthItems, 'income');
+    const expense = sumBy(monthItems, 'expense');
+    const balance = income - expense;
+
+    document.getElementById('monthIncome').textContent = fmt(income);
+    document.getElementById('monthExpense').textContent = fmt(expense);
+
+    const balEl = document.getElementById('monthBalance');
+    balEl.textContent = fmt(balance);
+    balEl.style.color = balance >= 0 ? '#4cff9a' : '#ff6b6b';
+}
+
+/* -------- По людям за месяц -------- */
+function renderPeople() {
+    const build = (owner, prefix) => {
+        const mi = getMonthItems(currentYear, currentMonth, owner);
+        const income = sumBy(mi, 'income');
+        const expense = sumBy(mi, 'expense');
+        const balance = income - expense;
+
+        document.getElementById(prefix + 'Income').textContent = fmt(income);
+        document.getElementById(prefix + 'Expense').textContent = fmt(expense);
+
+        const balEl = document.getElementById(prefix + 'Balance');
+        balEl.textContent = fmt(balance);
+        balEl
