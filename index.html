@@ -34,7 +34,7 @@
 
     label { display: block; font-size: 13px; color: #8b929c; margin-bottom: 4px; }
 
-    input, select {
+    input, select, textarea {
         width: 100%;
         padding: 12px;
         font-size: 16px;
@@ -43,12 +43,14 @@
         border: 1px solid #3a4048;
         border-radius: 8px;
         outline: none;
-        transition: border-color 0.15s, box-shadow 0.15s;
+        font-family: inherit;
     }
 
-    input::placeholder { color: #8b929c; }
+    textarea { resize: vertical; min-height: 60px; }
 
-    input:focus, select:focus {
+    input::placeholder, textarea::placeholder { color: #8b929c; }
+
+    input:focus, select:focus, textarea:focus {
         border-color: #4c8dff;
         box-shadow: 0 0 0 3px rgba(76, 141, 255, 0.25);
     }
@@ -87,6 +89,7 @@
     button.danger:hover { background: #3a2024; color: #ff9a9a; }
 
     button.full { width: 100%; }
+    button.sm { padding: 6px 10px; font-size: 13px; }
 
     .month-nav {
         display: flex;
@@ -139,6 +142,13 @@
     td.amount.expense { color: #ff6b6b; }
     td.amount.debt-in { color: #ffc84c; }
     td.amount.debt-out { color: #8b929c; }
+
+    td.actions { text-align: right; white-space: nowrap; width: 1%; }
+    td.actions button { padding: 4px 8px; font-size: 13px; margin-left: 4px; }
+    td.actions .edit { background: #1e3a5f; color: #6ba8ff; border: 1px solid #2c588a; }
+    td.actions .edit:hover { background: #2c588a; color: #a8c8ff; }
+    td.actions .del { background: #3a2024; color: #ff6b6b; border: 1px solid #5a2a2f; }
+    td.actions .del:hover { background: #5a2a2f; color: #ff9a9a; }
 
     .empty {
         text-align: center;
@@ -447,6 +457,49 @@
     .status.ok  { color: #4cff9a; }
     .status.err { color: #ff6b6b; }
 
+    /* ===== Модальное окно ===== */
+    .modal-bg {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.75);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        z-index: 1000;
+    }
+
+    .modal-bg.show { display: flex; }
+
+    .modal {
+        background: #1a1e24;
+        border: 1px solid #3a4048;
+        border-radius: 12px;
+        padding: 20px;
+        max-width: 560px;
+        width: 100%;
+        max-height: 92vh;
+        overflow-y: auto;
+    }
+
+    .modal h3 {
+        margin: 0 0 16px;
+        font-size: 18px;
+        color: #ffffff;
+    }
+
+    .modal .row { margin-bottom: 12px; }
+
+    .modal .actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 20px;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .modal .actions button { flex: 0 0 auto; }
+
     @media (max-width: 640px) {
         body { padding: 12px; }
         h1 { font-size: 20px; }
@@ -477,7 +530,11 @@
             letter-spacing: 0.5px;
         }
         td.amount { text-align: right; justify-content: space-between; }
+        td.actions { justify-content: flex-end; }
+        td.actions::before { content: none; }
         td:first-child { font-weight: 600; color: #ffffff; }
+        .modal .actions { flex-direction: column; }
+        .modal .actions button { width: 100%; }
     }
 </style>
 </head>
@@ -570,6 +627,7 @@
                     <th>Кто</th>
                     <th>Категория</th>
                     <th class="amount">Сумма</th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody id="list"></tbody>
@@ -738,6 +796,74 @@
 <button class="danger full" style="margin-bottom:8px" onclick="clearAllData()">🗑 Очистить все данные</button>
 
 <!-- ============================================================
+     МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ
+     ============================================================ -->
+<div class="modal-bg" id="editModal">
+    <div class="modal">
+        <h3>✏️ Редактировать запись</h3>
+
+        <div class="row">
+            <div class="field">
+                <label>Кто</label>
+                <select id="eOwner">
+                    <option value="andrey">Андрей</option>
+                    <option value="lera">Леруська</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Тип</label>
+                <select id="eType" onchange="onEditTypeChange()">
+                    <option value="expense">Расход</option>
+                    <option value="income">Доход</option>
+                    <option value="debt-in">Взял в долг (я должен)</option>
+                    <option value="debt-out">Вернул долг (я отдал)</option>
+                    <option value="debt-give">Дал в долг (мне должны)</option>
+                    <option value="debt-get">Получил долг (мне вернули)</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Категория</label>
+                <select id="eCategory">
+                    <option value="Продукты">Продукты</option>
+                    <option value="Транспорт">Транспорт</option>
+                    <option value="Жильё">Жильё</option>
+                    <option value="Развлечения">Развлечения</option>
+                    <option value="Здоровье">Здоровье</option>
+                    <option value="Животные">Животные</option>
+                    <option value="Сигареты">Сигареты</option>
+                    <option value="Одежда">Одежда</option>
+                    <option value="Красота">Красота</option>
+                    <option value="Кредиты">Кредиты</option>
+                    <option value="Зарплата">Зарплата</option>
+                    <option value="Пенсия">Пенсия</option>
+                    <option value="Ветеранка">Ветеранка</option>
+                    <option value="Подработка">Подработка</option>
+                    <option value="Долг">Долг</option>
+                    <option value="Прочее">Прочее</option>
+                </select>
+            </div>
+            <div class="field wide hidden" id="eCounterpartyField">
+                <label id="eCounterpartyLabel">Контрагент</label>
+                <input id="eCounterparty" type="text" placeholder="Имя">
+            </div>
+            <div class="field wide">
+                <label>Описание</label>
+                <input id="eDesc" type="text">
+            </div>
+            <div class="field">
+                <label>Сумма, ₽</label>
+                <input id="eAmount" type="number" min="0" step="0.01" inputmode="decimal">
+            </div>
+        </div>
+
+        <div class="actions">
+            <button class="ghost" onclick="closeEditModal()">Отмена</button>
+            <button onclick="saveEdit()">💾 Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
      Firebase SDK
      ============================================================ -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -761,6 +887,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const COLLECTION = "transactions";
+const ADMIN_PASSWORD = '3058';
 
 /* ============================================================
    СОСТОЯНИЕ
@@ -769,6 +896,7 @@ let items = [];
 let currentYear, currentMonth;
 let ownerFilter = "all";
 let catKind = "expense";
+let editingId = null;
 
 (function initCurrentMonth() {
     const now = new Date();
@@ -833,7 +961,7 @@ function isIncomeLike(t) {
 }
 
 /* ============================================================
-   ФОРМА
+   ФОРМА ДОБАВЛЕНИЯ
    ============================================================ */
 function onTypeChange() {
     const type = document.getElementById('type').value;
@@ -859,7 +987,31 @@ function onTypeChange() {
 }
 
 /* ============================================================
-   FIRESTORE: подписка в реальном времени
+   ФОРМА РЕДАКТИРОВАНИЯ
+   ============================================================ */
+function onEditTypeChange() {
+    const type = document.getElementById('eType').value;
+    const field = document.getElementById('eCounterpartyField');
+    const label = document.getElementById('eCounterpartyLabel');
+
+    const labels = {
+        'debt-in':   'У кого взял',
+        'debt-out':  'Кому вернул',
+        'debt-give': 'Кому дал',
+        'debt-get':  'От кого получил'
+    };
+
+    if (isDebtType(type)) {
+        field.classList.remove('hidden');
+        label.textContent = labels[type] || 'Контрагент';
+    } else {
+        field.classList.add('hidden');
+        document.getElementById('eCounterparty').value = '';
+    }
+}
+
+/* ============================================================
+   FIRESTORE
    ============================================================ */
 function subscribe() {
     db.collection(COLLECTION).orderBy('date', 'asc').onSnapshot(snap => {
@@ -916,13 +1068,99 @@ function addItem() {
 }
 
 /* ============================================================
+   РЕДАКТИРОВАНИЕ
+   ============================================================ */
+function openEditModal(id) {
+    const it = items.find(x => x.id === id);
+    if (!it) { setStatus('Запись не найдена', 'err'); return; }
+
+    editingId = id;
+
+    document.getElementById('eOwner').value = it.owner || 'andrey';
+    document.getElementById('eType').value = it.type || 'expense';
+    document.getElementById('eCategory').value = it.category || 'Прочее';
+    document.getElementById('eDesc').value = it.desc || '';
+    document.getElementById('eAmount').value = it.amount || 0;
+    document.getElementById('eCounterparty').value = it.counterparty || '';
+
+    onEditTypeChange();
+
+    document.getElementById('editModal').classList.add('show');
+}
+
+function closeEditModal() {
+    editingId = null;
+    document.getElementById('editModal').classList.remove('show');
+}
+
+function saveEdit() {
+    if (!editingId) return;
+
+    const desc = document.getElementById('eDesc').value.trim();
+    const amount = Number(document.getElementById('eAmount').value);
+    const type = document.getElementById('eType').value;
+    const category = document.getElementById('eCategory').value;
+    const owner = document.getElementById('eOwner').value;
+    const counterparty = document.getElementById('eCounterparty').value.trim();
+
+    if (!desc) { setStatus('Введите описание', 'err'); return; }
+    if (!amount || amount <= 0) { setStatus('Введите сумму больше нуля', 'err'); return; }
+    if (isDebtType(type) && !counterparty) { setStatus('Укажите контрагента', 'err'); return; }
+
+    const data = { desc, category, amount, type, owner };
+    if (isDebtType(type)) data.counterparty = counterparty;
+    else data.counterparty = firebase.firestore.FieldValue.delete();
+
+    setStatus('Сохранение…');
+    db.collection(COLLECTION).doc(editingId).update(data).then(() => {
+        closeEditModal();
+        setStatus('Изменения сохранены', 'ok');
+        setTimeout(() => setStatus(''), 1500);
+    }).catch(e => {
+        console.error(e);
+        setStatus('Ошибка сохранения: ' + e.message, 'err');
+    });
+}
+
+/* ============================================================
+   УДАЛЕНИЕ ОДНОЙ ЗАПИСИ (по паролю)
+   ============================================================ */
+function removeItemWithPassword(id) {
+    const it = items.find(x => x.id === id);
+    if (!it) return;
+
+    const input = prompt(
+        '⚠️ Удаление записи:\n\n' +
+        `"${it.desc}" — ${fmt(it.amount)}\n\n` +
+        'Введите пароль для удаления:'
+    );
+    if (input === null) return;
+
+    if (input !== ADMIN_PASSWORD) {
+        setStatus('Неверный пароль', 'err');
+        return;
+    }
+
+    setStatus('Удаление…');
+    db.collection(COLLECTION).doc(id).delete()
+        .then(() => {
+            setStatus('Запись удалена', 'ok');
+            setTimeout(() => setStatus(''), 1500);
+        })
+        .catch(e => {
+            console.error(e);
+            setStatus('Ошибка удаления: ' + e.message, 'err');
+        });
+}
+
+/* ============================================================
    ОЧИСТКА ВСЕХ ДАННЫХ (по паролю)
    ============================================================ */
 function clearAllData() {
     const input = prompt('Введите пароль для очистки всех данных:');
     if (input === null) return;
 
-    if (input !== '3058') {
+    if (input !== ADMIN_PASSWORD) {
         setStatus('Неверный пароль', 'err');
         return;
     }
@@ -936,9 +1174,7 @@ function clearAllData() {
     db.collection(COLLECTION).get()
         .then(snapshot => {
             const batch = db.batch();
-            snapshot.docs.forEach(doc => {
-                batch.delete(doc.ref);
-            });
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
             return batch.commit();
         })
         .then(() => {
@@ -1031,26 +1267,18 @@ function computeDebts() {
         if (!name) return;
         const key = name.toLowerCase();
 
-        if (!map.has(key)) {
-            map.set(key, { name, owe: 0, owed: 0 });
-        }
+        if (!map.has(key)) map.set(key, { name, owe: 0, owed: 0 });
         const entry = map.get(key);
         const amt = Number(it.amount || 0);
 
-        if (it.type === 'debt-in') {
-            entry.owe += amt;
-        } else if (it.type === 'debt-out') {
-            entry.owe -= amt;
-        } else if (it.type === 'debt-give') {
-            entry.owed += amt;
-        } else if (it.type === 'debt-get') {
-            entry.owed -= amt;
-        }
+        if (it.type === 'debt-in')        entry.owe  += amt;
+        else if (it.type === 'debt-out')  entry.owe  -= amt;
+        else if (it.type === 'debt-give') entry.owed += amt;
+        else if (it.type === 'debt-get')  entry.owed -= amt;
     });
 
     const list = [];
-    let totalOwe = 0;
-    let totalOwed = 0;
+    let totalOwe = 0, totalOwed = 0;
 
     map.forEach(e => {
         const balance = e.owe - e.owed;
@@ -1064,22 +1292,18 @@ function computeDebts() {
     });
 
     list.sort((a, b) => b.balance - a.balance);
-
     return { list, totalOwe, totalOwed, balance: totalOwed - totalOwe };
 }
 
 /* ============================================================
-   СТАТИСТИКА ПО КАТЕГОРИЯМ
+   КАТЕГОРИИ
    ============================================================ */
 function computeCategories(arr, kind) {
     const filterFn = kind === 'expense' ? isExpenseLike : isIncomeLike;
-
-    const total = arr
-        .filter(it => filterFn(it.type))
-        .reduce((s, it) => s + Number(it.amount || 0), 0);
+    const total = arr.filter(it => filterFn(it.type))
+                     .reduce((s, it) => s + Number(it.amount || 0), 0);
 
     const map = new Map();
-
     arr.forEach(it => {
         if (!filterFn(it.type)) return;
         const cat = it.category || 'Прочее';
@@ -1115,11 +1339,8 @@ function renderCategoryBlock(containerId, arr, kind) {
 }
 
 function renderCategories() {
-    const monthItems = getMonthItems(currentYear, currentMonth);
-    const yearItems  = getYearItems(currentYear);
-
-    renderCategoryBlock('catListMonth', monthItems, catKind);
-    renderCategoryBlock('catListYear',  yearItems,  catKind);
+    renderCategoryBlock('catListMonth', getMonthItems(currentYear, currentMonth), catKind);
+    renderCategoryBlock('catListYear',  getYearItems(currentYear),              catKind);
 }
 
 /* ============================================================
@@ -1150,7 +1371,7 @@ function renderMonth() {
     monthItems.sort((a, b) => Number(b.amount) - Number(a.amount));
 
     if (monthItems.length === 0) {
-        list.innerHTML = `<tr><td colspan="4" class="empty">Нет записей за этот месяц</td></tr>`;
+        list.innerHTML = `<tr><td colspan="5" class="empty">Нет записей за этот месяц</td></tr>`;
     } else {
         list.innerHTML = monthItems.map(it => {
             const isDebt = isDebtType(it.type);
@@ -1178,6 +1399,10 @@ function renderMonth() {
                 <td data-label="Сумма" class="amount ${it.type}">
                     ${prefix} ${fmt(it.amount)}
                 </td>
+                <td class="actions">
+                    <button class="edit" onclick="openEditModal('${it.id}')" title="Редактировать">✏️</button>
+                    <button class="del" onclick="removeItemWithPassword('${it.id}')" title="Удалить">✕</button>
+                </td>
             </tr>`;
         }).join('');
     }
@@ -1198,7 +1423,7 @@ function renderMonth() {
 function renderDebts() {
     const { list, totalOwe, totalOwed, balance } = computeDebts();
 
-    document.getElementById('debtOweTotal').textContent = fmt(totalOwe);
+    document.getElementById('debtOweTotal').textContent  = fmt(totalOwe);
     document.getElementById('debtOwedTotal').textContent = fmt(totalOwed);
 
     const balEl = document.getElementById('debtBalance');
@@ -1226,7 +1451,7 @@ function renderDebts() {
     }).join('');
 }
 
-/* -------- По людям за месяц -------- */
+/* -------- По людям -------- */
 function renderPeople() {
     const build = (owner, prefix) => {
         let mi;
@@ -1274,7 +1499,7 @@ function renderPeople() {
     build('shared', 'shared');
 }
 
-/* -------- Годовая статистика -------- */
+/* -------- Годовая -------- */
 function renderYearStats() {
     const yearItems = getYearItems(currentYear);
     const income  = sumIncomes(yearItems);
@@ -1288,14 +1513,11 @@ function renderYearStats() {
     balEl.textContent = fmt(balance);
     balEl.style.color = balance >= 0 ? '#4cff9a' : '#ff6b6b';
 
-    const monthsWithData = new Set(
-        yearItems.map(it => it.date.slice(0, 7))
-    ).size || 1;
-    document.getElementById('yearAvgExpense').textContent =
-        fmt(expense / monthsWithData);
+    const monthsWithData = new Set(yearItems.map(it => it.date.slice(0, 7))).size || 1;
+    document.getElementById('yearAvgExpense').textContent = fmt(expense / monthsWithData);
 }
 
-/* -------- Дельты месяца -------- */
+/* -------- Дельты -------- */
 function renderMonthDeltas() {
     const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
     const prevYear  = currentMonth === 0 ? currentYear - 1 : currentYear;
@@ -1353,9 +1575,7 @@ function setDelta(elId, current, prev, invertColor) {
 /* ============================================================
    ГРАФИКИ
    ============================================================ */
-let chartMonthly = null;
-let chartByPerson = null;
-let chartYTD = null;
+let chartMonthly = null, chartByPerson = null, chartYTD = null;
 
 const chartOptions = {
     responsive: true,
@@ -1369,16 +1589,11 @@ const chartOptions = {
             titleColor: '#ffffff',
             bodyColor: '#e8eaed',
             padding: 10,
-            callbacks: {
-                label: ctx => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`
-            }
+            callbacks: { label: ctx => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)}` }
         }
     },
     scales: {
-        x: {
-            ticks: { color: '#8b929c', font: { size: 12 } },
-            grid: { color: '#232830' }
-        },
+        x: { ticks: { color: '#8b929c', font: { size: 12 } }, grid: { color: '#232830' } },
         y: {
             beginAtZero: true,
             ticks: {
@@ -1395,7 +1610,6 @@ function renderCharts() {
     const yearData = getYearTotals(currentYear);
     const labels = MONTHS.map(m => m.slice(0, 3));
 
-    /* 1. По месяцам */
     if (chartMonthly) chartMonthly.destroy();
     chartMonthly = new Chart(document.getElementById('chartMonthly'), {
         type: 'bar',
@@ -1423,7 +1637,6 @@ function renderCharts() {
         options: chartOptions
     });
 
-    /* 2. По людям */
     const andreyData = [], leraData = [], sharedData = [];
     for (let m = 0; m < 12; m++) {
         andreyData.push(sumExpenses(getMonthItems(currentYear, m, 'andrey')));
@@ -1440,36 +1653,14 @@ function renderCharts() {
         data: {
             labels,
             datasets: [
-                {
-                    label: 'Андрей',
-                    data: andreyData,
-                    backgroundColor: 'rgba(76, 141, 255, 0.75)',
-                    borderColor: '#4c8dff',
-                    borderWidth: 1,
-                    borderRadius: 4
-                },
-                {
-                    label: 'Леруська',
-                    data: leraData,
-                    backgroundColor: 'rgba(255, 141, 220, 0.75)',
-                    borderColor: '#ff8ddc',
-                    borderWidth: 1,
-                    borderRadius: 4
-                },
-                {
-                    label: 'Совместно',
-                    data: sharedData,
-                    backgroundColor: 'rgba(255, 200, 76, 0.75)',
-                    borderColor: '#ffc84c',
-                    borderWidth: 1,
-                    borderRadius: 4
-                }
+                { label: 'Андрей',   data: andreyData, backgroundColor: 'rgba(76, 141, 255, 0.75)',  borderColor: '#4c8dff', borderWidth: 1, borderRadius: 4 },
+                { label: 'Леруська', data: leraData,   backgroundColor: 'rgba(255, 141, 220, 0.75)', borderColor: '#ff8ddc', borderWidth: 1, borderRadius: 4 },
+                { label: 'Совместно',data: sharedData, backgroundColor: 'rgba(255, 200, 76, 0.75)',  borderColor: '#ffc84c', borderWidth: 1, borderRadius: 4 }
             ]
         },
         options: chartOptions
     });
 
-    /* 3. Накопительно */
     const ytdIncome = [], ytdExpense = [];
     let accI = 0, accE = 0;
     for (let m = 0; m < 12; m++) {
@@ -1485,26 +1676,8 @@ function renderCharts() {
         data: {
             labels,
             datasets: [
-                {
-                    label: 'Доходы накопительно',
-                    data: ytdIncome,
-                    borderColor: '#4cff9a',
-                    backgroundColor: 'rgba(76, 255, 154, 0.1)',
-                    fill: true,
-                    tension: 0.3,
-                    pointBackgroundColor: '#4cff9a',
-                    pointRadius: 4
-                },
-                {
-                    label: 'Расходы накопительно',
-                    data: ytdExpense,
-                    borderColor: '#ff6b6b',
-                    backgroundColor: 'rgba(255, 107, 107, 0.1)',
-                    fill: true,
-                    tension: 0.3,
-                    pointBackgroundColor: '#ff6b6b',
-                    pointRadius: 4
-                }
+                { label: 'Доходы накопительно',  data: ytdIncome,  borderColor: '#4cff9a', backgroundColor: 'rgba(76, 255, 154, 0.1)',  fill: true, tension: 0.3, pointBackgroundColor: '#4cff9a', pointRadius: 4 },
+                { label: 'Расходы накопительно', data: ytdExpense, borderColor: '#ff6b6b', backgroundColor: 'rgba(255, 107, 107, 0.1)', fill: true, tension: 0.3, pointBackgroundColor: '#ff6b6b', pointRadius: 4 }
             ]
         },
         options: chartOptions
@@ -1555,12 +1728,17 @@ function escapeHtml(s) {
 /* ============================================================
    ЭКСПОРТ В ГЛОБАЛЬНУЮ ОБЛАСТЬ
    ============================================================ */
-window.addItem        = addItem;
-window.shiftMonth     = shiftMonth;
-window.exportCSV      = exportCSV;
-window.setOwnerFilter = setOwnerFilter;
-window.onTypeChange   = onTypeChange;
-window.clearAllData   = clearAllData;
+window.addItem               = addItem;
+window.shiftMonth            = shiftMonth;
+window.exportCSV             = exportCSV;
+window.setOwnerFilter        = setOwnerFilter;
+window.onTypeChange          = onTypeChange;
+window.onEditTypeChange      = onEditTypeChange;
+window.openEditModal         = openEditModal;
+window.closeEditModal        = closeEditModal;
+window.saveEdit              = saveEdit;
+window.removeItemWithPassword = removeItemWithPassword;
+window.clearAllData          = clearAllData;
 
 document.getElementById('ownerFilter').addEventListener('click', e => {
     const btn = e.target.closest('button');
@@ -1572,6 +1750,18 @@ document.getElementById('catToggle').addEventListener('click', e => {
     const btn = e.target.closest('button');
     if (!btn) return;
     setCatKind(btn.dataset.kind);
+});
+
+/* Закрытие модального окна по клику на фон */
+document.getElementById('editModal').addEventListener('click', e => {
+    if (e.target.id === 'editModal') closeEditModal();
+});
+
+/* Escape — закрыть модальное окно */
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && document.getElementById('editModal').classList.contains('show')) {
+        closeEditModal();
+    }
 });
 
 /* ============================================================
