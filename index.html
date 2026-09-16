@@ -96,6 +96,9 @@
     button.ok { background: #1f8a4c; }
     button.ok:hover { background: #26a85d; }
 
+    button.warn { background: #b8860b; }
+    button.warn:hover { background: #d4a017; }
+
     button.full { width: 100%; }
     button.sm { padding: 8px 14px; font-size: 14px; }
 
@@ -743,7 +746,6 @@
 
     .modal .actions button { flex: 0 0 auto; }
 
-    /* Разбивка платежа */
     .breakdown {
         background: #1e2228;
         border: 1px solid #2c3138;
@@ -768,7 +770,6 @@
     .breakdown .line.penalty .v { color: #ff6b6b; }
     .breakdown .line.total .v { color: #ffffff; font-size: 16px; }
 
-    /* Таблица графика */
     .schedule-wrap {
         overflow: auto;
         max-height: 60vh;
@@ -806,9 +807,6 @@
 
     .schedule-table tr.next { background: rgba(76, 141, 255, 0.08); }
 
-    /* ============================================================
-       МОБИЛЬНАЯ ВЕРСИЯ
-       ============================================================ */
     @media (max-width: 640px) {
         body { padding: 12px; }
         h1 { font-size: 20px; }
@@ -1050,12 +1048,11 @@
 </div>
 
 <!-- ============================================================
-     💳 КРЕДИТЫ — НОВАЯ СЕКЦИЯ
+     💳 КРЕДИТЫ
      ============================================================ -->
 <div class="card">
     <h2>💳 Кредиты</h2>
 
-    <!-- Сводка по всем кредитам -->
     <div class="loan-summary">
         <div class="item">
             <div class="label">Общий долг (тело)</div>
@@ -1084,7 +1081,6 @@
         </div>
     </div>
 
-    <!-- Список кредитов -->
     <div id="loansList"></div>
 
     <button class="ghost full" style="margin-top:8px" onclick="exportLoansCSV()">📥 Экспорт кредитов в CSV</button>
@@ -1214,7 +1210,7 @@
 <button class="danger full" style="margin-bottom:8px" onclick="clearAllData()">🗑 Очистить все данные</button>
 
 <!-- ============================================================
-     МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ ТРАНЗАКЦИИ
+     МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ
      ============================================================ -->
 <div class="modal-bg" id="editModal">
     <div class="modal">
@@ -1287,7 +1283,7 @@
 </div>
 
 <!-- ============================================================
-     МОДАЛЬНОЕ ОКНО "ВНЕСТИ ПЛАТЁЖ ПО КРЕДИТУ"
+     МОДАЛЬНОЕ ОКНО "ВНЕСТИ ПЛАТЁЖ"
      ============================================================ -->
 <div class="modal-bg" id="loanPayModal">
     <div class="modal">
@@ -1346,7 +1342,91 @@
 </div>
 
 <!-- ============================================================
-     МОДАЛЬНОЕ ОКНО "ГРАФИК ПЛАТЕЖЕЙ"
+     МОДАЛЬНОЕ ОКНО "ДОСРОЧНЫЙ ПЛАТЁЖ"
+     ============================================================ -->
+<div class="modal-bg" id="prepayModal">
+    <div class="modal">
+        <h3>⚡ Досрочный платёж</h3>
+        <div id="prepayTitle" style="color:#8b929c;font-size:13px;margin-bottom:12px"></div>
+
+        <div class="row">
+            <div class="field">
+                <label>Дата платежа</label>
+                <input id="prepayDate" type="date">
+            </div>
+            <div class="field">
+                <label>Кто платит</label>
+                <select id="prepayOwner">
+                    <option value="andrey">Андрей</option>
+                    <option value="lera">Леруська</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="field wide">
+                <label>Сумма досрочного платежа, ₽</label>
+                <input id="prepayAmount" type="number" step="0.01" inputmode="decimal" placeholder="0">
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="field">
+                <label>Что гасим</label>
+                <select id="prepayTarget">
+                    <option value="body">Основной долг (тело)</option>
+                    <option value="interest">Проценты</option>
+                </select>
+            </div>
+            <div class="field" id="prepayStrategyField">
+                <label>Стратегия</label>
+                <select id="prepayStrategy">
+                    <option value="reduce_term">Уменьшить срок (выгоднее)</option>
+                    <option value="reduce_payment">Уменьшить платёж</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="breakdown" id="prepayPreview">
+            <div class="line">
+                <span class="k">Остаток до</span>
+                <span class="v" id="prepayOldBody">— ₽</span>
+            </div>
+            <div class="line body">
+                <span class="k">Гасим тело</span>
+                <span class="v" id="prepayCutBody">— ₽</span>
+            </div>
+            <div class="line interest">
+                <span class="k">Гасим проценты</span>
+                <span class="v" id="prepayCutInterest">— ₽</span>
+            </div>
+            <div class="line total">
+                <span class="k">Новый остаток</span>
+                <span class="v" id="prepayFinalBody">— ₽</span>
+            </div>
+            <div class="line">
+                <span class="k">Новый платёж</span>
+                <span class="v" id="prepayNewMonthly">— ₽</span>
+            </div>
+            <div class="line">
+                <span class="k">Новая дата закрытия</span>
+                <span class="v" id="prepayNewClose">—</span>
+            </div>
+            <div class="line">
+                <span class="k">Экономия на процентах</span>
+                <span class="v" style="color:#4cff9a" id="prepaySavings">— ₽</span>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button class="ghost" onclick="closePrepayModal()">Отмена</button>
+            <button class="warn" onclick="confirmPrepay()">⚡ Внести досрочный платёж</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     МОДАЛЬНОЕ ОКНО "ГРАФИК"
      ============================================================ -->
 <div class="modal-bg" id="loanScheduleModal">
     <div class="modal wide">
@@ -1402,7 +1482,7 @@ const ACCOUNTS_COLLECTION = "accounts";
 const ADMIN_PASSWORD = '3058';
 
 /* ============================================================
-   ДАННЫЕ КРЕДИТОВ (пока только №1 — Сбер)
+   ДАННЫЕ КРЕДИТОВ
    ============================================================ */
 const LOANS = [
     {
@@ -1413,7 +1493,7 @@ const LOANS = [
         openDate: '2023-06-26',
         closeDate: '2029-02-26',
         paymentDay: 2,
-        rate: 22.90,   // текущая ставка
+        rate: 22.90,
         bodyDebt: 259101.59,
         interestRemaining: 50963.74,
         penalty: 2459.03,
@@ -1438,6 +1518,7 @@ let ownerFilter = "all";
 let catKind = "expense";
 let editingId = null;
 let activeLoanId = null;
+let prepayPreviewData = null;
 
 (function initCurrentMonth() {
     const now = new Date();
@@ -1525,7 +1606,7 @@ function isIncomeLike(t) {
 }
 
 /* ============================================================
-   ФОРМА ДОБАВЛЕНИЯ
+   ФОРМА
    ============================================================ */
 function onTypeChange() {
     const type = document.getElementById('type').value;
@@ -1595,9 +1676,7 @@ function subscribe() {
             accounts = { andrey: 0, lera: 0 };
         }
         renderAccounts();
-    }, err => {
-        console.error('accounts error:', err);
-    });
+    }, err => console.error('accounts error:', err));
 }
 
 /* ============================================================
@@ -1624,30 +1703,27 @@ function setAccountBalance(owner) {
 
 function calcCurrentAccount(owner) {
     let balance = accounts[owner] || 0;
-
     items.forEach(it => {
         if (it.owner !== owner) return;
         const amt = Number(it.amount || 0);
-
         if (isIncomeLike(it.type)) balance += amt;
         else if (isExpenseLike(it.type)) balance -= amt;
     });
-
     return balance;
 }
 
 function renderAccounts() {
-    const andreyCurrent = calcCurrentAccount('andrey');
-    const leraCurrent   = calcCurrentAccount('lera');
-    const total = andreyCurrent + leraCurrent;
+    const aC = calcCurrentAccount('andrey');
+    const lC = calcCurrentAccount('lera');
+    const total = aC + lC;
 
     const elA = document.getElementById('accAndreyBalance');
-    elA.textContent = fmt(andreyCurrent);
-    elA.className = 'balance ' + (andreyCurrent >= 0 ? 'positive' : 'negative');
+    elA.textContent = fmt(aC);
+    elA.className = 'balance ' + (aC >= 0 ? 'positive' : 'negative');
 
     const elL = document.getElementById('accLeraBalance');
-    elL.textContent = fmt(leraCurrent);
-    elL.className = 'balance ' + (leraCurrent >= 0 ? 'positive' : 'negative');
+    elL.textContent = fmt(lC);
+    elL.className = 'balance ' + (lC >= 0 ? 'positive' : 'negative');
 
     document.getElementById('accAndreySub').textContent = 'начальный: ' + fmt(accounts.andrey || 0);
     document.getElementById('accLeraSub').textContent   = 'начальный: ' + fmt(accounts.lera   || 0);
@@ -1657,7 +1733,7 @@ function renderAccounts() {
 }
 
 /* ============================================================
-   ДОБАВЛЕНИЕ
+   ДОБАВЛЕНИЕ / РЕДАКТИРОВАНИЕ / УДАЛЕНИЕ
    ============================================================ */
 function addItem() {
     const date = document.getElementById('dateInput').value || todayISO();
@@ -1699,9 +1775,6 @@ function addItem() {
     });
 }
 
-/* ============================================================
-   РЕДАКТИРОВАНИЕ
-   ============================================================ */
 function openEditModal(id) {
     const it = items.find(x => x.id === id);
     if (!it) { setStatus('Запись не найдена', 'err'); return; }
@@ -1758,9 +1831,6 @@ function saveEdit() {
     });
 }
 
-/* ============================================================
-   УДАЛЕНИЕ ОДНОЙ ЗАПИСИ
-   ============================================================ */
 function removeItemWithPassword(id) {
     const it = items.find(x => x.id === id);
     if (!it) return;
@@ -1789,9 +1859,6 @@ function removeItemWithPassword(id) {
         });
 }
 
-/* ============================================================
-   ОЧИСТКА ВСЕХ ДАННЫХ
-   ============================================================ */
 function clearAllData() {
     const input = prompt(
         '⚠️ Удалить ВСЕ транзакции?\n\n' +
@@ -1884,11 +1951,7 @@ function getYearTotals(y) {
     const result = [];
     for (let m = 0; m < 12; m++) {
         const mi = getMonthItems(y, m);
-        result.push({
-            month: m,
-            income: sumIncomes(mi),
-            expense: sumExpenses(mi)
-        });
+        result.push({ month: m, income: sumIncomes(mi), expense: sumExpenses(mi) });
     }
     return result;
 }
@@ -1898,19 +1961,15 @@ function getYearTotals(y) {
    ============================================================ */
 function computeDebts() {
     const map = new Map();
-
     items.forEach(it => {
         if (!isDebtType(it.type)) return;
         if (!it.counterparty) return;
-
         const name = String(it.counterparty).trim();
         if (!name) return;
         const key = name.toLowerCase();
-
         if (!map.has(key)) map.set(key, { name, owe: 0, owed: 0 });
         const entry = map.get(key);
         const amt = Number(it.amount || 0);
-
         if (it.type === 'debt-in')        entry.owe  += amt;
         else if (it.type === 'debt-out')  entry.owe  -= amt;
         else if (it.type === 'debt-give') entry.owed += amt;
@@ -1942,38 +2001,31 @@ function computeCategories(arr, kind) {
     const filterFn = kind === 'expense' ? isExpenseLike : isIncomeLike;
     const total = arr.filter(it => filterFn(it.type))
                      .reduce((s, it) => s + Number(it.amount || 0), 0);
-
     const map = new Map();
     arr.forEach(it => {
         if (!filterFn(it.type)) return;
         const cat = it.category || 'Прочее';
         map.set(cat, (map.get(cat) || 0) + Number(it.amount || 0));
     });
-
     const list = Array.from(map.entries())
         .map(([name, sum]) => ({ name, sum, pct: total ? (sum / total) * 100 : 0 }))
         .sort((a, b) => b.sum - a.sum);
-
     return { list, total };
 }
 
 function renderCategoryBlock(containerId, arr, kind) {
     const container = document.getElementById(containerId);
     const { list } = computeCategories(arr, kind);
-
     if (list.length === 0) {
         container.innerHTML = `<div class="debt-hint">Нет данных</div>`;
         return;
     }
-
     container.innerHTML = list.map(c => `
         <div class="cat-row ${kind}">
             <span class="cat-name">${escapeHtml(c.name)}</span>
             <span class="cat-sum">${fmt(c.sum)}</span>
             <span class="cat-pct">${c.pct.toFixed(1)}%</span>
-            <span class="cat-bar">
-                <span class="cat-bar-fill" style="width:${c.pct.toFixed(2)}%"></span>
-            </span>
+            <span class="cat-bar"><span class="cat-bar-fill" style="width:${c.pct.toFixed(2)}%"></span></span>
         </div>
     `).join('');
 }
@@ -1984,7 +2036,7 @@ function renderCategories() {
 }
 
 /* ============================================================
-   💳 КРЕДИТЫ — ОТРИСОВКА
+   💳 КРЕДИТЫ — СВОДКА
    ============================================================ */
 function renderLoanSummary() {
     let totalBody = 0, totalInterest = 0, totalPenalty = 0, monthlySum = 0;
@@ -2025,13 +2077,14 @@ function renderLoanSummary() {
         : '—';
 }
 
+/* ============================================================
+   💳 КРЕДИТЫ — КАРТОЧКИ
+   ============================================================ */
 function renderLoans() {
     const container = document.getElementById('loansList');
 
     if (LOANS.length === 0) {
-        container.innerHTML = `
-            <div class="debt-hint">Пока нет кредитов. Добавьте первый.</div>
-        `;
+        container.innerHTML = `<div class="debt-hint">Пока нет кредитов.</div>`;
         return;
     }
 
@@ -2086,6 +2139,7 @@ function renderLoans() {
 
                 <div class="actions">
                     <button class="ok" onclick="openLoanPayModal('${loan.id}')">💰 Внести платёж</button>
+                    <button class="warn" onclick="openPrepayModal('${loan.id}')">⚡ Досрочно</button>
                     <button onclick="openLoanScheduleModal('${loan.id}')">📅 График</button>
                 </div>
             </div>
@@ -2106,7 +2160,7 @@ function generateSchedule(loan) {
     const closeDate = new Date(loan.closeDate);
     let n = 1;
 
-    while (body > 0 && n < 100 && date <= closeDate) {
+    while (body > 0 && n < 200 && date <= closeDate) {
         const interest = body * monthlyRate;
         let bodyPayment = payment - interest;
 
@@ -2166,7 +2220,7 @@ function closeLoanScheduleModal() {
 }
 
 /* ============================================================
-   💳 КРЕДИТЫ — ВНЕСТИ ПЛАТЁЖ
+   💳 КРЕДИТЫ — ОБЫЧНЫЙ ПЛАТЁЖ
    ============================================================ */
 function openLoanPayModal(loanId) {
     const loan = LOANS.find(l => l.id === loanId);
@@ -2182,7 +2236,6 @@ function openLoanPayModal(loanId) {
     document.getElementById('loanPayInterest').textContent = fmt2(bd.interest);
     document.getElementById('loanPayPenalty').textContent = fmt2(bd.penalty);
     document.getElementById('loanPayTotal').textContent = fmt2(bd.body + bd.interest + bd.penalty);
-
     document.getElementById('loanPayAmount').value = (bd.body + bd.interest + bd.penalty).toFixed(2);
 
     document.getElementById('loanPayModal').classList.add('show');
@@ -2207,7 +2260,6 @@ function confirmLoanPayment() {
 
     const bd = loan.nextPaymentBreakdown;
 
-    // 1. Обновляем данные кредита
     loan.bodyDebt = Math.max(0, loan.bodyDebt - bd.body);
     loan.penalty = Math.max(0, loan.penalty - bd.penalty);
     loan.interestRemaining = Math.max(0, loan.interestRemaining - bd.interest);
@@ -2216,17 +2268,13 @@ function confirmLoanPayment() {
     nd.setMonth(nd.getMonth() + 1);
     loan.nextPaymentDate = nd.toISOString().slice(0, 10);
 
-    // Пересчёт следующей разбивки
     const monthlyRate = loan.rate / 100 / 12;
     const newInterest = loan.bodyDebt * monthlyRate;
     const newBody = loan.monthlyPayment - newInterest;
     const newPenalty = Math.min(loan.penalty, 81.97);
 
-    loan.nextPaymentBreakdown = {
-        body: newBody, interest: newInterest, penalty: newPenalty
-    };
+    loan.nextPaymentBreakdown = { body: newBody, interest: newInterest, penalty: newPenalty };
 
-    // 2. Создаём расход в бюджете
     const txData = {
         date,
         desc: `Платёж по кредиту: ${loan.name} (${loan.bank})`,
@@ -2243,6 +2291,201 @@ function confirmLoanPayment() {
             closeLoanPayModal();
             renderAll();
             setStatus('Платёж внесён', 'ok');
+            setTimeout(() => setStatus(''), 2000);
+        })
+        .catch(e => {
+            console.error(e);
+            setStatus('Ошибка: ' + e.message, 'err');
+        });
+}
+
+/* ============================================================
+   💳 КРЕДИТЫ — ДОСРОЧНЫЙ ПЛАТЁЖ
+   ============================================================ */
+function openPrepayModal(loanId) {
+    const loan = LOANS.find(l => l.id === loanId);
+    if (!loan) return;
+
+    activeLoanId = loanId;
+    prepayPreviewData = null;
+
+    document.getElementById('prepayTitle').textContent = `${loan.name} · ${loan.bank}`;
+    document.getElementById('prepayDate').value = todayISO();
+    document.getElementById('prepayAmount').value = '';
+    document.getElementById('prepayTarget').value = 'body';
+    document.getElementById('prepayStrategy').value = 'reduce_term';
+
+    updatePrepayPreview();
+
+    document.getElementById('prepayModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+
+    document.getElementById('prepayAmount').oninput = updatePrepayPreview;
+    document.getElementById('prepayTarget').onchange = updatePrepayPreview;
+    document.getElementById('prepayStrategy').onchange = updatePrepayPreview;
+}
+
+function closePrepayModal() {
+    activeLoanId = null;
+    prepayPreviewData = null;
+    document.getElementById('prepayModal').classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+function updatePrepayPreview() {
+    const loan = LOANS.find(l => l.id === activeLoanId);
+    if (!loan) return;
+
+    const amount = Number(document.getElementById('prepayAmount').value) || 0;
+    const target = document.getElementById('prepayTarget').value;
+    const strategy = document.getElementById('prepayStrategy').value;
+
+    // Показываем/скрываем стратегию
+    document.getElementById('prepayStrategyField').style.display =
+        target === 'body' ? 'block' : 'none';
+
+    const oldBody = loan.bodyDebt;
+    const oldMonthly = loan.monthlyPayment;
+    const oldCloseDate = new Date(loan.closeDate);
+    const monthlyRate = loan.rate / 100 / 12;
+
+    let newBody = oldBody;
+    let newMonthly = oldMonthly;
+    let newCloseDate = oldCloseDate;
+    let interestCut = 0;
+    let savings = 0;
+
+    if (target === 'body') {
+        newBody = Math.max(0, oldBody - amount);
+
+        if (strategy === 'reduce_term') {
+            if (newBody > 0 && oldMonthly > newBody * monthlyRate) {
+                const n = -Math.log(1 - (monthlyRate * newBody) / oldMonthly) / Math.log(1 + monthlyRate);
+                const monthsLeft = Math.ceil(n);
+                newCloseDate = new Date();
+                newCloseDate.setMonth(newCloseDate.getMonth() + monthsLeft);
+
+                // Экономия: сравниваем с изначальным графиком
+                const monthsOld = monthsBetween(new Date(loan.nextPaymentDate), oldCloseDate);
+                const totalOld = oldMonthly * monthsOld - oldBody;
+                const totalNew = oldMonthly * monthsLeft - newBody;
+                savings = Math.max(0, totalOld - totalNew);
+            } else if (newBody === 0) {
+                newCloseDate = new Date();
+                savings = loan.interestRemaining;
+            }
+        } else {
+            const monthsLeft = monthsBetween(new Date(loan.nextPaymentDate), oldCloseDate);
+            if (monthsLeft > 0 && newBody > 0) {
+                newMonthly = newBody * (monthlyRate * Math.pow(1 + monthlyRate, monthsLeft))
+                           / (Math.pow(1 + monthlyRate, monthsLeft) - 1);
+                savings = (oldMonthly - newMonthly) * monthsLeft;
+            } else if (newBody === 0) {
+                newMonthly = 0;
+                savings = loan.interestRemaining;
+            }
+        }
+    } else {
+        // target === 'interest'
+        interestCut = amount;
+        if (loan.interestRemaining > 0) {
+            const newInterestRemaining = Math.max(0, loan.interestRemaining - amount);
+            const monthsLeft = monthsBetween(new Date(loan.nextPaymentDate), oldCloseDate);
+            const interestPerMonth = loan.interestRemaining / Math.max(1, monthsLeft);
+            const newMonthsLeft = Math.ceil(newInterestRemaining / interestPerMonth);
+            newCloseDate = new Date();
+            newCloseDate.setMonth(newCloseDate.getMonth() + newMonthsLeft);
+            savings = Math.max(0, (monthsLeft - newMonthsLeft) * interestPerMonth);
+        }
+    }
+
+    newBody = Math.round(newBody * 100) / 100;
+    newMonthly = Math.round(newMonthly * 100) / 100;
+    savings = Math.round(savings * 100) / 100;
+
+    prepayPreviewData = {
+        amount, target, strategy,
+        oldBody, newBody, oldMonthly, newMonthly,
+        oldCloseDate: oldCloseDate.toISOString().slice(0, 10),
+        newCloseDate: newCloseDate.toISOString().slice(0, 10),
+        interestCut, savings
+    };
+
+    document.getElementById('prepayOldBody').textContent = fmt2(oldBody);
+    document.getElementById('prepayCutBody').textContent =
+        target === 'body' ? fmt2(Math.min(amount, oldBody)) : fmt2(0);
+    document.getElementById('prepayCutInterest').textContent =
+        target === 'interest' ? fmt2(amount) : fmt2(0);
+    document.getElementById('prepayFinalBody').textContent = fmt2(newBody);
+    document.getElementById('prepayNewMonthly').textContent =
+        newMonthly > 0 ? fmt2(newMonthly) + ' / мес' : '—';
+    document.getElementById('prepayNewClose').textContent =
+        formatDateRu(newCloseDate.toISOString().slice(0, 10));
+    document.getElementById('prepaySavings').textContent = fmt2(savings);
+}
+
+function monthsBetween(dateFrom, dateTo) {
+    return Math.max(0, (dateTo.getFullYear() - dateFrom.getFullYear()) * 12
+                     + (dateTo.getMonth() - dateFrom.getMonth()));
+}
+
+function confirmPrepay() {
+    const loan = LOANS.find(l => l.id === activeLoanId);
+    if (!loan || !prepayPreviewData) return;
+
+    const amount = prepayPreviewData.amount;
+    const date = document.getElementById('prepayDate').value || todayISO();
+    const owner = document.getElementById('prepayOwner').value;
+    const target = prepayPreviewData.target;
+
+    if (!amount || amount <= 0) {
+        setStatus('Введите сумму', 'err');
+        return;
+    }
+
+    const d = prepayPreviewData;
+
+    loan.bodyDebt = d.newBody;
+    loan.monthlyPayment = d.newMonthly > 0 ? d.newMonthly : loan.monthlyPayment;
+    loan.closeDate = d.newCloseDate;
+
+    if (target === 'interest') {
+        loan.interestRemaining = Math.max(0, loan.interestRemaining - amount);
+    } else {
+        loan.interestRemaining = Math.max(0, loan.interestRemaining - d.savings);
+    }
+
+    // Пересчёт следующей разбивки
+    const monthlyRate = loan.rate / 100 / 12;
+    const newInterest = loan.bodyDebt * monthlyRate;
+    const newBody = Math.max(0, loan.monthlyPayment - newInterest);
+    const newPenalty = Math.min(loan.penalty, 81.97);
+
+    loan.nextPaymentBreakdown = {
+        body: newBody,
+        interest: newInterest,
+        penalty: newPenalty
+    };
+
+    const targetLabel = target === 'body' ? 'основной долг' : 'проценты';
+    const desc = `Досрочный платёж: ${loan.name} (${loan.bank}) — ${targetLabel}`;
+
+    const txData = {
+        date,
+        desc,
+        category: 'Кредиты',
+        amount,
+        type: 'expense',
+        owner,
+        createdAt: Date.now()
+    };
+
+    setStatus('Сохранение…');
+    db.collection(COLLECTION).add(txData)
+        .then(() => {
+            closePrepayModal();
+            renderAll();
+            setStatus('Досрочный платёж внесён', 'ok');
             setTimeout(() => setStatus(''), 2000);
         })
         .catch(e => {
@@ -2295,7 +2538,6 @@ function renderAll() {
     renderCharts();
 }
 
-/* -------- Таблица месяца -------- */
 function renderMonth() {
     document.getElementById('monthLabel').textContent =
         `${MONTHS[currentMonth]} ${currentYear}`;
@@ -2317,7 +2559,6 @@ function renderMonth() {
     } else {
         list.innerHTML = monthItems.map(it => {
             const isDebt = isDebtType(it.type);
-
             const prefix =
                 it.type === 'income'    ? '+' :
                 it.type === 'expense'   ? '−' :
@@ -2325,11 +2566,9 @@ function renderMonth() {
                 it.type === 'debt-out'  ? '↑' :
                 it.type === 'debt-give' ? '→' :
                 it.type === 'debt-get'  ? '←' : '';
-
             const descText = isDebt && it.counterparty
                 ? `${escapeHtml(it.desc)} <span style="color:#8b929c">(${escapeHtml(it.counterparty)})</span>`
                 : escapeHtml(it.desc);
-
             return `
             <tr>
                 <td data-label="Дата">${formatDateRu(it.date)}</td>
@@ -2362,10 +2601,8 @@ function renderMonth() {
     balEl.style.color = balance >= 0 ? '#4cff9a' : '#ff6b6b';
 }
 
-/* -------- Долги -------- */
 function renderDebts() {
     const { list, totalOwe, totalOwed, balance } = computeDebts();
-
     document.getElementById('debtOweTotal').textContent  = fmt(totalOwe);
     document.getElementById('debtOwedTotal').textContent = fmt(totalOwed);
 
@@ -2374,12 +2611,10 @@ function renderDebts() {
     balEl.style.color = balance >= 0 ? '#4cff9a' : '#ff6b6b';
 
     const container = document.getElementById('debtList');
-
     if (list.length === 0) {
         container.innerHTML = `<div class="debt-hint">Пока нет активных долгов</div>`;
         return;
     }
-
     container.innerHTML = list.map(d => {
         const kind = d.kind === 'owe' ? 'owe' : 'owed';
         const label = d.kind === 'owe' ? 'я должен' : 'мне должен';
@@ -2394,15 +2629,11 @@ function renderDebts() {
     }).join('');
 }
 
-/* -------- По людям -------- */
 function renderPeople() {
     const build = (owner, prefix) => {
         let mi;
-        if (owner === 'shared') {
-            mi = getMonthItems(currentYear, currentMonth);
-        } else {
-            mi = getMonthItems(currentYear, currentMonth, owner);
-        }
+        if (owner === 'shared') mi = getMonthItems(currentYear, currentMonth);
+        else mi = getMonthItems(currentYear, currentMonth, owner);
 
         const income  = sumIncomes(mi);
         const expense = sumExpenses(mi);
@@ -2442,7 +2673,6 @@ function renderPeople() {
     build('shared', 'shared');
 }
 
-/* -------- Годовая -------- */
 function renderYearStats() {
     const yearItems = getYearItems(currentYear);
     const income  = sumIncomes(yearItems);
@@ -2460,7 +2690,6 @@ function renderYearStats() {
     document.getElementById('yearAvgExpense').textContent = fmt(expense / monthsWithData);
 }
 
-/* -------- Дельты -------- */
 function renderMonthDeltas() {
     const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
     const prevYear  = currentMonth === 0 ? currentYear - 1 : currentYear;
@@ -2672,6 +2901,10 @@ window.setAccountBalance      = setAccountBalance;
 window.openLoanPayModal       = openLoanPayModal;
 window.closeLoanPayModal      = closeLoanPayModal;
 window.confirmLoanPayment     = confirmLoanPayment;
+window.openPrepayModal        = openPrepayModal;
+window.closePrepayModal       = closePrepayModal;
+window.confirmPrepay          = confirmPrepay;
+window.updatePrepayPreview    = updatePrepayPreview;
 window.openLoanScheduleModal  = openLoanScheduleModal;
 window.closeLoanScheduleModal = closeLoanScheduleModal;
 window.exportLoansCSV         = exportLoansCSV;
@@ -2696,6 +2929,10 @@ document.getElementById('loanPayModal').addEventListener('click', e => {
     if (e.target.id === 'loanPayModal') closeLoanPayModal();
 });
 
+document.getElementById('prepayModal').addEventListener('click', e => {
+    if (e.target.id === 'prepayModal') closePrepayModal();
+});
+
 document.getElementById('loanScheduleModal').addEventListener('click', e => {
     if (e.target.id === 'loanScheduleModal') closeLoanScheduleModal();
 });
@@ -2704,6 +2941,7 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
         if (document.getElementById('editModal').classList.contains('show')) closeEditModal();
         if (document.getElementById('loanPayModal').classList.contains('show')) closeLoanPayModal();
+        if (document.getElementById('prepayModal').classList.contains('show')) closePrepayModal();
         if (document.getElementById('loanScheduleModal').classList.contains('show')) closeLoanScheduleModal();
     }
 });
