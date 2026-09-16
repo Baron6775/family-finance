@@ -18,25 +18,9 @@
         line-height: 1.5;
     }
 
-    h1 {
-        color: #ffffff;
-        font-size: 22px;
-        margin: 0 0 6px;
-        text-align: center;
-    }
-
-    .subtitle {
-        text-align: center;
-        color: #8b929c;
-        font-size: 14px;
-        margin-bottom: 20px;
-    }
-
-    h2 {
-        color: #ffffff;
-        font-size: 17px;
-        margin: 0 0 14px;
-    }
+    h1 { color: #ffffff; font-size: 22px; margin: 0 0 6px; text-align: center; }
+    .subtitle { text-align: center; color: #8b929c; font-size: 14px; margin-bottom: 20px; }
+    h2 { color: #ffffff; font-size: 17px; margin: 0 0 14px; }
 
     .card {
         background: #1a1e24;
@@ -46,19 +30,9 @@
         margin-bottom: 16px;
     }
 
-    .row {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: flex-end;
-    }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
 
-    label {
-        display: block;
-        font-size: 13px;
-        color: #8b929c;
-        margin-bottom: 4px;
-    }
+    label { display: block; font-size: 13px; color: #8b929c; margin-bottom: 4px; }
 
     input, select {
         width: 100%;
@@ -81,6 +55,7 @@
 
     .field { flex: 1 1 140px; min-width: 0; }
     .field.wide { flex: 2 1 200px; }
+    .hidden { display: none !important; }
 
     button {
         padding: 12px 18px;
@@ -115,21 +90,9 @@
     }
 
     .month-nav button { padding: 8px 12px; font-size: 14px; flex: 0 0 auto; }
+    .month-label { font-size: 16px; font-weight: 700; color: #ffffff; text-align: center; flex: 1; }
 
-    .month-label {
-        font-size: 16px;
-        font-weight: 700;
-        color: #ffffff;
-        text-align: center;
-        flex: 1;
-    }
-
-    .owner-filter {
-        display: flex;
-        gap: 6px;
-        flex-wrap: wrap;
-        margin-bottom: 14px;
-    }
+    .owner-filter { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
 
     .owner-filter button {
         padding: 8px 14px;
@@ -148,11 +111,7 @@
 
     .table-wrap { overflow-x: auto; }
 
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 14px;
-    }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
 
     th, td {
         padding: 10px 8px;
@@ -171,6 +130,8 @@
     td.amount { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
     td.amount.income { color: #4cff9a; }
     td.amount.expense { color: #ff6b6b; }
+    td.amount.debt-in { color: #ffc84c; }
+    td.amount.debt-out { color: #8b929c; }
 
     td.actions { text-align: right; width: 50px; }
 
@@ -201,6 +162,10 @@
     .badge.andrey { background: rgba(76, 141, 255, 0.15); color: #6ba8ff; border: 1px solid rgba(76, 141, 255, 0.35); }
     .badge.lera   { background: rgba(255, 141, 220, 0.15); color: #ff8ddc; border: 1px solid rgba(255, 141, 220, 0.35); }
     .badge.shared { background: rgba(255, 200, 76, 0.15); color: #ffc84c; border: 1px solid rgba(255, 200, 76, 0.35); }
+    .badge.income { background: rgba(76, 255, 154, 0.15); color: #4cff9a; border: 1px solid rgba(76, 255, 154, 0.35); }
+    .badge.expense { background: rgba(255, 107, 107, 0.15); color: #ff6b6b; border: 1px solid rgba(255, 107, 107, 0.35); }
+    .badge.debt-in { background: rgba(255, 200, 76, 0.15); color: #ffc84c; border: 1px solid rgba(255, 200, 76, 0.35); }
+    .badge.debt-out { background: rgba(139, 146, 156, 0.15); color: #8b929c; border: 1px solid rgba(139, 146, 156, 0.35); }
 
     .stats {
         display: grid;
@@ -235,11 +200,7 @@
     .stat .value.income { color: #4cff9a; }
     .stat .value.expense { color: #ff6b6b; }
 
-    .delta {
-        font-size: 12px;
-        margin-top: 4px;
-        font-weight: 600;
-    }
+    .delta { font-size: 12px; margin-top: 4px; font-weight: 600; }
     .delta.up { color: #4cff9a; }
     .delta.down { color: #ff6b6b; }
     .delta.flat { color: #8b929c; }
@@ -262,11 +223,7 @@
     .person-card.lera   { border-top-color: #ff8ddc; }
     .person-card.shared { border-top-color: #ffc84c; }
 
-    .person-card h3 {
-        margin: 0 0 10px;
-        font-size: 15px;
-        color: #ffffff;
-    }
+    .person-card h3 { margin: 0 0 10px; font-size: 15px; color: #ffffff; }
 
     .person-card .line {
         display: flex;
@@ -283,11 +240,77 @@
     .person-card .line .v.income { color: #4cff9a; }
     .person-card .line .v.expense { color: #ff6b6b; }
 
-    .chart-container {
-        position: relative;
-        height: 240px;
-        margin-top: 10px;
+    /* ===== Долги ===== */
+    .debts-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 10px;
+        margin-bottom: 14px;
     }
+
+    .debts-summary .item {
+        padding: 12px;
+        border-radius: 10px;
+        border: 1px solid #2c3138;
+        background: #1e2228;
+    }
+
+    .debts-summary .item .label {
+        font-size: 11px;
+        color: #8b929c;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 6px;
+    }
+
+    .debts-summary .item .value {
+        font-size: 18px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .debts-summary .item.owe .value { color: #ff6b6b; }
+    .debts-summary .item.owed .value { color: #4cff9a; }
+    .debts-summary .item.balance .value { color: #ffc84c; }
+
+    .debt-list { margin-top: 10px; }
+
+    .debt-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: #1e2228;
+        border: 1px solid #2c3138;
+        margin-bottom: 6px;
+        font-size: 14px;
+    }
+
+    .debt-row .name {
+        font-weight: 600;
+        color: #ffffff;
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .debt-row .amt { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 600; }
+    .debt-row .amt.owe { color: #ff6b6b; }
+    .debt-row .amt.owed { color: #4cff9a; }
+    .debt-row .amt.zero { color: #8b929c; }
+
+    .debt-hint {
+        text-align: center;
+        color: #6b7280;
+        font-size: 13px;
+        padding: 10px;
+    }
+
+    .chart-container { position: relative; height: 240px; margin-top: 10px; }
 
     .legend {
         display: flex;
@@ -389,14 +412,15 @@
             <select id="owner">
                 <option value="andrey">Андрей</option>
                 <option value="lera">Леруська</option>
-                <option value="shared">Совместно</option>
             </select>
         </div>
         <div class="field">
             <label>Тип</label>
-            <select id="type">
+            <select id="type" onchange="onTypeChange()">
                 <option value="expense">Расход</option>
                 <option value="income">Доход</option>
+                <option value="debt-in">Взял в долг</option>
+                <option value="debt-out">Вернул долг</option>
             </select>
         </div>
         <div class="field">
@@ -409,8 +433,13 @@
                 <option value="Здоровье">Здоровье</option>
                 <option value="Зарплата">Зарплата</option>
                 <option value="Подработка">Подработка</option>
+                <option value="Долг">Долг</option>
                 <option value="Прочее">Прочее</option>
             </select>
+        </div>
+        <div class="field wide hidden" id="counterpartyField">
+            <label id="counterpartyLabel">Контрагент</label>
+            <input id="counterparty" type="text" placeholder="Имя">
         </div>
         <div class="field wide">
             <label>Описание</label>
@@ -439,7 +468,6 @@
         <button data-owner="all" class="active">Все</button>
         <button data-owner="andrey">Андрей</button>
         <button data-owner="lera">Леруська</button>
-        <button data-owner="shared">Совместно</button>
     </div>
 
     <div class="table-wrap">
@@ -473,6 +501,28 @@
     </div>
 </div>
 
+<!-- ===== Долги ===== -->
+<div class="card">
+    <h2>Долги — кто кому сколько</h2>
+
+    <div class="debts-summary">
+        <div class="item owe">
+            <div class="label">Я должен (всего)</div>
+            <div class="value" id="debtOweTotal">0 ₽</div>
+        </div>
+        <div class="item owed">
+            <div class="label">Мне должны (всего)</div>
+            <div class="value" id="debtOwedTotal">0 ₽</div>
+        </div>
+        <div class="item balance">
+            <div class="label">Итоговый баланс долгов</div>
+            <div class="value" id="debtBalance">0 ₽</div>
+        </div>
+    </div>
+
+    <div class="debt-list" id="debtList"></div>
+</div>
+
 <!-- ===== По людям ===== -->
 <div class="card">
     <h2>Статистика месяца по людям</h2>
@@ -492,7 +542,7 @@
             <div class="delta" id="leraDelta">—</div>
         </div>
         <div class="person-card shared">
-            <h3>🟡 Совместно</h3>
+            <h3>🟡 Совместно (Андрей + Леруська)</h3>
             <div class="line"><span class="k">Доходы</span><span class="v income" id="sharedIncome">0 ₽</span></div>
             <div class="line"><span class="k">Расходы</span><span class="v expense" id="sharedExpense">0 ₽</span></div>
             <div class="line"><span class="k">Баланс</span><span class="v" id="sharedBalance">0 ₽</span></div>
@@ -580,7 +630,7 @@
 <button class="ghost full" style="margin-bottom:8px" onclick="exportCSV()">Экспорт в CSV</button>
 
 <!-- ============================================================
-     Firebase SDK (совместимая версия — работает без type="module")
+     Firebase SDK
      ============================================================ -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -588,20 +638,17 @@
 
 <script>
 /* ============================================================
-   ⬇⬇⬇  ВСТАВЬТЕ СЮДА ВАШ firebaseConfig ИЗ КОНСОЛИ FIREBASE  ⬇⬇⬇
+   ВАШ firebaseConfig
    ============================================================ */
 const firebaseConfig = {
- apiKey: "AIzaSyCfGt-rOprLVx5BKfiuWQohYNvfPDPdusk",
- authDomain: "family-finance-72604.firebaseapp.com",
- projectId: "family-finance-72604",
- storageBucket: "family-finance-72604.firebasestorage.app",
- messagingSenderId: "241336270344",
- appId: "1:241336270344:web:cef117718df6fb49121bbd",
- measurementId: "G-1DDWSQ0M56"
-  };
-/* ============================================================
-   ⬆⬆⬆  КОНЕЦ ВСТАВКИ  ⬆⬆⬆
-   ============================================================ */
+    apiKey: "AIzaSyCfGt-rOprLVx5BKfiuWQohYNvfPDPdusk",
+    authDomain: "family-finance-72604.firebaseapp.com",
+    projectId: "family-finance-72604",
+    storageBucket: "family-finance-72604.firebasestorage.app",
+    messagingSenderId: "241336270344",
+    appId: "1:241336270344:web:cef117718df6fb49121bbd",
+    measurementId: "G-1DDWSQ0M56"
+};
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
@@ -621,12 +668,26 @@ let ownerFilter = "all";
 })();
 
 /* ============================================================
-   КОНСТАНТЫ И УТИЛИТЫ
+   КОНСТАНТЫ
    ============================================================ */
 const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь',
                 'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 
 const OWNER_LABEL = { andrey: 'Андрей', lera: 'Леруська', shared: 'Совместно' };
+
+const TYPE_LABEL = {
+    income:   'Доход',
+    expense:  'Расход',
+    'debt-in':  'Взял в долг',
+    'debt-out': 'Вернул долг'
+};
+
+const TYPE_BADGE = {
+    income:   'income',
+    expense:  'expense',
+    'debt-in':  'debt-in',
+    'debt-out': 'debt-out'
+};
 
 function fmt(n) {
     return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(n) + ' ₽';
@@ -642,8 +703,30 @@ function setStatus(text, cls = '') {
     el.className = 'status ' + cls;
 }
 
+function isDebtType(t) { return t === 'debt-in' || t === 'debt-out'; }
+
 /* ============================================================
-   FIRESTORE: подписка в реальном времени
+   ФОРМА: показ/скрытие поля «Контрагент»
+   ============================================================ */
+function onTypeChange() {
+    const type = document.getElementById('type').value;
+    const field = document.getElementById('counterpartyField');
+    const label = document.getElementById('counterpartyLabel');
+    const catSelect = document.getElementById('category');
+
+    if (isDebtType(type)) {
+        field.classList.remove('hidden');
+        label.textContent = type === 'debt-in' ? 'У кого взял' : 'Кому вернул';
+        // Автоматически ставим категорию «Долг»
+        catSelect.value = 'Долг';
+    } else {
+        field.classList.add('hidden');
+        document.getElementById('counterparty').value = '';
+    }
+}
+
+/* ============================================================
+   FIRESTORE
    ============================================================ */
 function subscribe() {
     db.collection(COLLECTION).orderBy('date', 'asc').onSnapshot(snap => {
@@ -665,19 +748,25 @@ function addItem() {
     const type = document.getElementById('type').value;
     const category = document.getElementById('category').value;
     const owner = document.getElementById('owner').value;
+    const counterparty = document.getElementById('counterparty').value.trim();
 
     if (!desc)   { setStatus('Введите описание', 'err'); return; }
     if (!amount || amount <= 0) { setStatus('Введите сумму больше нуля', 'err'); return; }
+    if (isDebtType(type) && !counterparty) {
+        setStatus(type === 'debt-in' ? 'Укажите, у кого взяли' : 'Укажите, кому вернули', 'err');
+        return;
+    }
 
     const date = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`;
 
+    const data = { date, desc, category, amount, type, owner, createdAt: Date.now() };
+    if (isDebtType(type)) data.counterparty = counterparty;
+
     setStatus('Сохранение…');
-    db.collection(COLLECTION).add({
-        date, desc, category, amount, type, owner,
-        createdAt: Date.now()
-    }).then(() => {
+    db.collection(COLLECTION).add(data).then(() => {
         document.getElementById('desc').value = '';
         document.getElementById('amount').value = '';
+        document.getElementById('counterparty').value = '';
         setStatus('Добавлено', 'ok');
         setTimeout(() => setStatus(''), 1500);
     }).catch(e => {
@@ -739,6 +828,11 @@ function sumBy(arr, type) {
               .reduce((s, it) => s + Number(it.amount || 0), 0);
 }
 
+function sumByTypes(arr, types) {
+    return arr.filter(it => types.includes(it.type))
+              .reduce((s, it) => s + Number(it.amount || 0), 0);
+}
+
 function getYearTotals(y) {
     const result = [];
     for (let m = 0; m < 12; m++) {
@@ -753,10 +847,71 @@ function getYearTotals(y) {
 }
 
 /* ============================================================
+   ДОЛГИ — расчёт по контрагентам
+   ============================================================ */
+/*
+  Логика:
+  - debt-in: «взял в долг» — я должен контрагенту. Увеличивает мой долг.
+  - debt-out: «вернул долг» — я погасил часть. Уменьшает мой долг.
+
+  Для каждого контрагента считаем:
+    balance = сумма(debt-in) - сумма(debt-out)
+
+  Если balance > 0 — я должен этому человеку.
+  Если balance < 0 — этот человек должен мне (переплатил или занял больше).
+*/
+function computeDebts() {
+    // Ключ — контрагент (по нормализованному имени)
+    const map = new Map();
+
+    items.forEach(it => {
+        if (!isDebtType(it.type)) return;
+        if (!it.counterparty) return;
+
+        const name = String(it.counterparty).trim();
+        if (!name) return;
+        const key = name.toLowerCase();
+
+        if (!map.has(key)) {
+            map.set(key, { name, owe: 0, owed: 0 });
+        }
+        const entry = map.get(key);
+        const amt = Number(it.amount || 0);
+
+        if (it.type === 'debt-in') {
+            entry.owe += amt; // я должен
+        } else if (it.type === 'debt-out') {
+            entry.owed += amt; // я отдаю — уменьшает долг
+        }
+    });
+
+    // Чистый баланс по каждому контрагенту
+    const list = [];
+    let totalOwe = 0;  // сколько я должен
+    let totalOwed = 0; // сколько мне должны
+
+    map.forEach(e => {
+        const balance = e.owe - e.owed;
+        if (balance > 0) {
+            list.push({ name: e.name, balance, kind: 'owe' });
+            totalOwe += balance;
+        } else if (balance < 0) {
+            list.push({ name: e.name, balance: -balance, kind: 'owed' });
+            totalOwed += -balance;
+        }
+    });
+
+    list.sort((a, b) => b.balance - a.balance);
+
+    return { list, totalOwe, totalOwed, balance: totalOwed - totalOwe };
+}
+
+/* ============================================================
    ОТРИСОВКА
    ============================================================ */
 function renderAll() {
     renderMonth();
+    renderDebts();
     renderPeople();
     renderYearStats();
     renderMonthDeltas();
@@ -780,26 +935,41 @@ function renderMonth() {
     if (monthItems.length === 0) {
         list.innerHTML = `<tr><td colspan="5" class="empty">Нет записей за этот месяц</td></tr>`;
     } else {
-        list.innerHTML = monthItems.map(it => `
+        list.innerHTML = monthItems.map(it => {
+            const isDebt = isDebtType(it.type);
+            const prefix =
+                it.type === 'income' ? '+' :
+                it.type === 'expense' ? '−' :
+                it.type === 'debt-in' ? '↓' :
+                it.type === 'debt-out' ? '↑' : '';
+
+            const descText = isDebt && it.counterparty
+                ? `${escapeHtml(it.desc)} <span style="color:#8b929c">(${escapeHtml(it.counterparty)})</span>`
+                : escapeHtml(it.desc);
+
+            return `
             <tr>
-                <td data-label="Описание">${escapeHtml(it.desc)}</td>
+                <td data-label="Описание">${descText}</td>
                 <td data-label="Кто"><span class="badge ${it.owner}">${OWNER_LABEL[it.owner] || it.owner}</span></td>
-                <td data-label="Категория">${escapeHtml(it.category)}</td>
+                <td data-label="Категория">
+                    <span class="badge ${TYPE_BADGE[it.type] || ''}" style="margin-right:4px">${TYPE_LABEL[it.type] || it.type}</span>
+                    ${escapeHtml(it.category)}
+                </td>
                 <td data-label="Сумма" class="amount ${it.type}">
-                    ${it.type === 'income' ? '+' : '−'} ${fmt(it.amount)}
+                    ${prefix} ${fmt(it.amount)}
                 </td>
                 <td class="actions">
                     <button onclick="removeItem('${it.id}')">✕</button>
                 </td>
-            </tr>
-        `).join('');
+            </tr>`;
+        }).join('');
     }
 
-    const income = sumBy(monthItems, 'income');
+    const income  = sumBy(monthItems, 'income');
     const expense = sumBy(monthItems, 'expense');
     const balance = income - expense;
 
-    document.getElementById('monthIncome').textContent = fmt(income);
+    document.getElementById('monthIncome').textContent  = fmt(income);
     document.getElementById('monthExpense').textContent = fmt(expense);
 
     const balEl = document.getElementById('monthBalance');
@@ -807,15 +977,55 @@ function renderMonth() {
     balEl.style.color = balance >= 0 ? '#4cff9a' : '#ff6b6b';
 }
 
+/* -------- Долги -------- */
+function renderDebts() {
+    const { list, totalOwe, totalOwed, balance } = computeDebts();
+
+    document.getElementById('debtOweTotal').textContent = fmt(totalOwe);
+    document.getElementById('debtOwedTotal').textContent = fmt(totalOwed);
+
+    const balEl = document.getElementById('debtBalance');
+    // Если balance > 0 — мне должны больше; если < 0 — я должен больше
+    balEl.textContent = (balance >= 0 ? '+' : '−') + ' ' + fmt(Math.abs(balance));
+    balEl.style.color = balance >= 0 ? '#4cff9a' : '#ff6b6b';
+
+    const container = document.getElementById('debtList');
+
+    if (list.length === 0) {
+        container.innerHTML = `<div class="debt-hint">Пока нет долговых записей</div>`;
+        return;
+    }
+
+    container.innerHTML = list.map(d => {
+        const kind = d.kind === 'owe' ? 'owe' : 'owed';
+        const label = d.kind === 'owe' ? 'я должен' : 'мне должен';
+        const sign = d.kind === 'owe' ? '−' : '+';
+        return `
+            <div class="debt-row">
+                <span class="name">${escapeHtml(d.name)}</span>
+                <span style="color:#8b929c;font-size:12px;white-space:nowrap">${label}</span>
+                <span class="amt ${kind}">${sign} ${fmt(d.balance)}</span>
+            </div>
+        `;
+    }).join('');
+}
+
 /* -------- По людям за месяц -------- */
 function renderPeople() {
     const build = (owner, prefix) => {
-        const mi = getMonthItems(currentYear, currentMonth, owner);
-        const income = sumBy(mi, 'income');
+        // Для «Совместно» — сумма обоих
+        let mi;
+        if (owner === 'shared') {
+            mi = getMonthItems(currentYear, currentMonth);
+        } else {
+            mi = getMonthItems(currentYear, currentMonth, owner);
+        }
+
+        const income  = sumBy(mi, 'income');
         const expense = sumBy(mi, 'expense');
         const balance = income - expense;
 
-        document.getElementById(prefix + 'Income').textContent = fmt(income);
+        document.getElementById(prefix + 'Income').textContent  = fmt(income);
         document.getElementById(prefix + 'Expense').textContent = fmt(expense);
 
         const balEl = document.getElementById(prefix + 'Balance');
@@ -824,7 +1034,9 @@ function renderPeople() {
 
         const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
         const prevYear  = currentMonth === 0 ? currentYear - 1 : currentYear;
-        const prev = getMonthItems(prevYear, prevMonth, owner);
+        const prev = owner === 'shared'
+            ? getMonthItems(prevYear, prevMonth)
+            : getMonthItems(prevYear, prevMonth, owner);
         const prevExpense = sumBy(prev, 'expense');
 
         const el = document.getElementById(prefix + 'Delta');
@@ -873,7 +1085,7 @@ function renderMonthDeltas() {
     const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
     const prevYear  = currentMonth === 0 ? currentYear - 1 : currentYear;
 
-    const cur = getMonthItems(currentYear, currentMonth);
+    const cur  = getMonthItems(currentYear, currentMonth);
     const prev = getMonthItems(prevYear, prevMonth);
 
     const curIncome  = sumBy(cur, 'income');
@@ -918,6 +1130,9 @@ function setDelta(elId, current, prev, invertColor) {
     const sign = diff > 0 ? '+' : '';
     el.textContent = `${sign}${pct.toFixed(1)}% к прошлому месяцу`;
 
+    if (Math.abs(pct) < 0.05) el.className = 'delta flat';
+    else if (diff > 0) el.className = 'delta invertColor' ? '' : '';
+    // (защита от опечатки)
     if (Math.abs(pct) < 0.05) el.className = 'delta flat';
     else if (diff > 0) el.className = invertColor ? 'delta down' : 'delta up';
     else el.className = invertColor ? 'delta up' : 'delta down';
@@ -1001,7 +1216,11 @@ function renderCharts() {
     for (let m = 0; m < 12; m++) {
         andreyData.push(sumBy(getMonthItems(currentYear, m, 'andrey'), 'expense'));
         leraData.push(  sumBy(getMonthItems(currentYear, m, 'lera'),   'expense'));
-        sharedData.push(sumBy(getMonthItems(currentYear, m, 'shared'), 'expense'));
+        // shared — сумма обоих
+        sharedData.push(
+            sumBy(getMonthItems(currentYear, m, 'andrey'), 'expense') +
+            sumBy(getMonthItems(currentYear, m, 'lera'),   'expense')
+        );
     }
 
     if (chartByPerson) chartByPerson.destroy();
@@ -1087,12 +1306,13 @@ function renderCharts() {
 function exportCSV() {
     if (items.length === 0) { alert('Нет данных для экспорта'); return; }
 
-    const rows = [['Дата', 'Тип', 'Владелец', 'Категория', 'Описание', 'Сумма']];
+    const rows = [['Дата', 'Тип', 'Владелец', 'Контрагент', 'Категория', 'Описание', 'Сумма']];
     items.forEach(it => {
         rows.push([
             it.date,
-            it.type === 'income' ? 'Доход' : 'Расход',
+            TYPE_LABEL[it.type] || it.type,
             OWNER_LABEL[it.owner] || it.owner,
+            it.counterparty || '',
             it.category,
             it.desc,
             it.amount
@@ -1122,14 +1342,14 @@ function escapeHtml(s) {
 }
 
 /* ============================================================
-   ВЫНОСИМ ФУНКЦИИ В ГЛОБАЛЬНУЮ ОБЛАСТЬ
-   (чтобы onclick="..." в HTML их видел)
+   ЭКСПОРТ В ГЛОБАЛЬНУЮ ОБЛАСТЬ
    ============================================================ */
-window.addItem       = addItem;
-window.removeItem    = removeItem;
-window.shiftMonth    = shiftMonth;
-window.exportCSV     = exportCSV;
+window.addItem        = addItem;
+window.removeItem     = removeItem;
+window.shiftMonth     = shiftMonth;
+window.exportCSV      = exportCSV;
 window.setOwnerFilter = setOwnerFilter;
+window.onTypeChange   = onTypeChange;
 
 /* Фильтр по владельцу */
 document.getElementById('ownerFilter').addEventListener('click', e => {
