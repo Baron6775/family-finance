@@ -301,13 +301,102 @@
     .debt-row .amt { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 600; }
     .debt-row .amt.owe { color: #ff6b6b; }
     .debt-row .amt.owed { color: #4cff9a; }
-    .debt-row .amt.zero { color: #8b929c; }
 
     .debt-hint {
         text-align: center;
         color: #6b7280;
         font-size: 13px;
         padding: 10px;
+    }
+
+    /* ===== Статистика по категориям ===== */
+    .cat-section-title {
+        font-size: 13px;
+        color: #8b929c;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin: 18px 0 10px;
+        font-weight: 600;
+    }
+
+    .cat-section-title:first-child { margin-top: 0; }
+
+    .cat-row {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: 10px;
+        align-items: center;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: #1e2228;
+        border: 1px solid #2c3138;
+        margin-bottom: 6px;
+        font-size: 14px;
+    }
+
+    .cat-row .cat-name {
+        font-weight: 600;
+        color: #ffffff;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .cat-row .cat-bar {
+        grid-column: 1 / -1;
+        height: 6px;
+        border-radius: 3px;
+        background: #262b33;
+        overflow: hidden;
+        margin-top: 4px;
+    }
+
+    .cat-row .cat-bar-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.3s;
+    }
+
+    .cat-row .cat-sum {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        white-space: nowrap;
+        color: #ffffff;
+    }
+
+    .cat-row .cat-pct {
+        font-variant-numeric: tabular-nums;
+        font-size: 12px;
+        color: #8b929c;
+        white-space: nowrap;
+        min-width: 48px;
+        text-align: right;
+    }
+
+    .cat-row.expense .cat-bar-fill { background: linear-gradient(90deg, #b3392f, #ff6b6b); }
+    .cat-row.income  .cat-bar-fill { background: linear-gradient(90deg, #1f8a4c, #4cff9a); }
+    .cat-row.expense .cat-sum { color: #ff6b6b; }
+    .cat-row.income  .cat-sum { color: #4cff9a; }
+
+    .cat-toggle {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 14px;
+    }
+
+    .cat-toggle button {
+        flex: 1;
+        padding: 8px 14px;
+        font-size: 14px;
+        background: #1e2228;
+        color: #8b929c;
+        border: 1px solid #3a4048;
+    }
+
+    .cat-toggle button.active {
+        background: #2b6cff;
+        color: #ffffff;
+        border-color: #2b6cff;
     }
 
     .chart-container { position: relative; height: 240px; margin-top: 10px; }
@@ -436,7 +525,10 @@
                 <option value="Животные">Животные</option>
                 <option value="Сигареты">Сигареты</option>
                 <option value="Одежда">Одежда</option>
+                <option value="Кредиты">Кредиты</option>
                 <option value="Зарплата">Зарплата</option>
+                <option value="Пенсия">Пенсия</option>
+                <option value="Ветеранка">Ветеранка</option>
                 <option value="Подработка">Подработка</option>
                 <option value="Долг">Долг</option>
                 <option value="Прочее">Прочее</option>
@@ -556,6 +648,22 @@
     </div>
 </div>
 
+<!-- ===== Статистика по категориям ===== -->
+<div class="card">
+    <h2>Статистика по категориям</h2>
+
+    <div class="cat-toggle" id="catToggle">
+        <button data-kind="expense" class="active">Расходы</button>
+        <button data-kind="income">Доходы</button>
+    </div>
+
+    <div class="cat-section-title">За текущий месяц</div>
+    <div id="catListMonth"></div>
+
+    <div class="cat-section-title">За год целиком</div>
+    <div id="catListYear"></div>
+</div>
+
 <!-- ===== Общая статистика ===== -->
 <div class="card">
     <h2>Годовая статистика (все вместе)</h2>
@@ -665,6 +773,7 @@ const COLLECTION = "transactions";
 let items = [];
 let currentYear, currentMonth;
 let ownerFilter = "all";
+let catKind = "expense"; // expense | income
 
 (function initCurrentMonth() {
     const now = new Date();
@@ -831,6 +940,14 @@ function setOwnerFilter(owner) {
     renderAll();
 }
 
+function setCatKind(kind) {
+    catKind = kind;
+    document.querySelectorAll('#catToggle button').forEach(b =>
+        b.classList.toggle('active', b.dataset.kind === kind)
+    );
+    renderCategories();
+}
+
 /* ============================================================
    ВЫБОРКИ
    ============================================================ */
@@ -867,21 +984,7 @@ function getYearTotals(y) {
 }
 
 /* ============================================================
-   ДОЛГИ — расчёт по контрагентам
-   ============================================================
-   Логика:
-     owe  — сколько я должен контрагенту
-     owed — сколько контрагент должен мне
-
-     debt-in   (я взял)      → owe += сумма
-     debt-out  (я вернул)    → owe -= сумма
-     debt-give (я дал)       → owed += сумма
-     debt-get  (мне вернули) → owed -= сумма
-
-     баланс = owe - owed
-       > 0 → я должен
-       < 0 → мне должны
-       = 0 → долг закрыт
+   ДОЛГИ
    ============================================================ */
 function computeDebts() {
     const map = new Map();
@@ -932,12 +1035,65 @@ function computeDebts() {
 }
 
 /* ============================================================
+   СТАТИСТИКА ПО КАТЕГОРИЯМ
+   ============================================================ */
+function computeCategories(arr, kind) {
+    const total = arr
+        .filter(it => it.type === kind)
+        .reduce((s, it) => s + Number(it.amount || 0), 0);
+
+    const map = new Map();
+
+    arr.forEach(it => {
+        if (it.type !== kind) return;
+        const cat = it.category || 'Прочее';
+        map.set(cat, (map.get(cat) || 0) + Number(it.amount || 0));
+    });
+
+    const list = Array.from(map.entries())
+        .map(([name, sum]) => ({ name, sum, pct: total ? (sum / total) * 100 : 0 }))
+        .sort((a, b) => b.sum - a.sum);
+
+    return { list, total };
+}
+
+function renderCategoryBlock(containerId, arr, kind) {
+    const container = document.getElementById(containerId);
+    const { list, total } = computeCategories(arr, kind);
+
+    if (list.length === 0) {
+        container.innerHTML = `<div class="debt-hint">Нет данных</div>`;
+        return;
+    }
+
+    container.innerHTML = list.map(c => `
+        <div class="cat-row ${kind}">
+            <span class="cat-name">${escapeHtml(c.name)}</span>
+            <span class="cat-sum">${fmt(c.sum)}</span>
+            <span class="cat-pct">${c.pct.toFixed(1)}%</span>
+            <span class="cat-bar">
+                <span class="cat-bar-fill" style="width:${c.pct.toFixed(2)}%"></span>
+            </span>
+        </div>
+    `).join('');
+}
+
+function renderCategories() {
+    const monthItems = getMonthItems(currentYear, currentMonth);
+    const yearItems  = getYearItems(currentYear);
+
+    renderCategoryBlock('catListMonth', monthItems, catKind);
+    renderCategoryBlock('catListYear',  yearItems,  catKind);
+}
+
+/* ============================================================
    ОТРИСОВКА
    ============================================================ */
 function renderAll() {
     renderMonth();
     renderDebts();
     renderPeople();
+    renderCategories();
     renderYearStats();
     renderMonthDeltas();
     renderCharts();
@@ -1377,6 +1533,12 @@ document.getElementById('ownerFilter').addEventListener('click', e => {
     const btn = e.target.closest('button');
     if (!btn) return;
     setOwnerFilter(btn.dataset.owner);
+});
+
+document.getElementById('catToggle').addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    setCatKind(btn.dataset.kind);
 });
 
 /* ============================================================
