@@ -1482,7 +1482,7 @@ const ACCOUNTS_COLLECTION = "accounts";
 const ADMIN_PASSWORD = '3058';
 
 /* ============================================================
-   ДАННЫЕ КРЕДИТОВ (2 кредита — Сбер)
+   ДАННЫЕ КРЕДИТОВ (3 кредита — Сбер)
    ============================================================ */
 const LOANS = [
     {
@@ -1526,6 +1526,27 @@ const LOANS = [
             penalty: 68.07
         },
         totalRemaining: 341663.25
+    },
+    {
+        id: 'sber-3',
+        bank: 'Сбербанк',
+        name: 'Кредит №3',
+        initialAmount: 299999.00,
+        openDate: '2023-05-27',
+        closeDate: '2029-04-27',
+        paymentDay: 2,
+        rate: 27.90,
+        bodyDebt: 232733.26,
+        interestRemaining: 55562.50,
+        penalty: 2325.62,
+        monthlyPayment: 12038.51,
+        nextPaymentDate: '2026-10-02',
+        nextPaymentBreakdown: {
+            body: 5043.09,
+            interest: 6995.42,
+            penalty: 72.67
+        },
+        totalRemaining: 290621.38
     }
 ];
 
