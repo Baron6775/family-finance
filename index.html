@@ -79,6 +79,13 @@
     }
     button.ghost:hover { background: #1e2228; color: #ffffff; }
 
+    button.danger {
+        background: transparent;
+        color: #ff6b6b;
+        border: 1px solid #5a2a2f;
+    }
+    button.danger:hover { background: #3a2024; color: #ff9a9a; }
+
     button.full { width: 100%; }
 
     .month-nav {
@@ -132,17 +139,6 @@
     td.amount.expense { color: #ff6b6b; }
     td.amount.debt-in { color: #ffc84c; }
     td.amount.debt-out { color: #8b929c; }
-
-    td.actions { text-align: right; width: 50px; }
-
-    td.actions button {
-        padding: 6px 10px;
-        font-size: 14px;
-        background: #3a2024;
-        color: #ff6b6b;
-        border: 1px solid #5a2a2f;
-    }
-    td.actions button:hover { background: #5a2a2f; color: #ff9a9a; }
 
     .empty {
         text-align: center;
@@ -481,8 +477,6 @@
             letter-spacing: 0.5px;
         }
         td.amount { text-align: right; justify-content: space-between; }
-        td.actions { text-align: right; justify-content: flex-end; }
-        td.actions::before { content: none; }
         td:first-child { font-weight: 600; color: #ffffff; }
     }
 </style>
@@ -576,7 +570,6 @@
                     <th>Кто</th>
                     <th>Категория</th>
                     <th class="amount">Сумма</th>
-                    <th></th>
                 </tr>
             </thead>
             <tbody id="list"></tbody>
@@ -741,7 +734,8 @@
     </div>
 </div>
 
-<button class="ghost full" style="margin-bottom:8px" onclick="exportCSV()">Экспорт в CSV</button>
+<button class="ghost full" style="margin-bottom:8px" onclick="exportCSV()">📥 Экспорт в CSV</button>
+<button class="danger full" style="margin-bottom:8px" onclick="clearAllData()">🗑 Очистить все данные</button>
 
 <!-- ============================================================
      Firebase SDK
@@ -828,11 +822,7 @@ function isDebtType(t) {
 }
 
 /* ============================================================
-   ГЛАВНОЕ ИЗМЕНЕНИЕ: долговые операции учитываются
-   в доходах и расходах
-   ============================================================
-     Расходы: expense + debt-out (я вернул) + debt-give (я дал)
-     Доходы:  income  + debt-in (я взял)   + debt-get  (мне вернули)
+   ДОЛГОВЫЕ ОПЕРАЦИИ УЧИТЫВАЮТСЯ В ДОХОДАХ/РАСХОДАХ
    ============================================================ */
 function isExpenseLike(t) {
     return t === 'expense' || t === 'debt-out' || t === 'debt-give';
@@ -869,7 +859,7 @@ function onTypeChange() {
 }
 
 /* ============================================================
-   FIRESTORE
+   FIRESTORE: подписка в реальном времени
    ============================================================ */
 function subscribe() {
     db.collection(COLLECTION).orderBy('date', 'asc').onSnapshot(snap => {
@@ -883,7 +873,7 @@ function subscribe() {
 }
 
 /* ============================================================
-   ДОБАВЛЕНИЕ / УДАЛЕНИЕ
+   ДОБАВЛЕНИЕ
    ============================================================ */
 function addItem() {
     const desc = document.getElementById('desc').value.trim();
@@ -925,12 +915,35 @@ function addItem() {
     });
 }
 
-function removeItem(id) {
-    if (!confirm('Удалить запись?')) return;
-    db.collection(COLLECTION).doc(id).delete()
+/* ============================================================
+   ОЧИСТКА ВСЕХ ДАННЫХ (по паролю)
+   ============================================================ */
+function clearAllData() {
+    const input = prompt('Введите пароль для очистки всех данных:');
+    if (input === null) return;
+
+    if (input !== '3058') {
+        setStatus('Неверный пароль', 'err');
+        return;
+    }
+
+    if (!confirm('⚠️ ВНИМАНИЕ! Все данные будут безвозвратно удалены. Продолжить?')) {
+        return;
+    }
+
+    setStatus('Удаление…');
+
+    db.collection(COLLECTION).get()
+        .then(snapshot => {
+            const batch = db.batch();
+            snapshot.docs.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+            return batch.commit();
+        })
         .then(() => {
-            setStatus('Удалено', 'ok');
-            setTimeout(() => setStatus(''), 1500);
+            setStatus('Все данные удалены', 'ok');
+            setTimeout(() => setStatus(''), 2000);
         })
         .catch(e => {
             console.error(e);
@@ -981,21 +994,13 @@ function getYearItems(y, owner = null) {
     );
 }
 
-/* Расходные суммы: обычные расходы + возврат долга + дал в долг */
 function sumExpenses(arr) {
     return arr.filter(it => isExpenseLike(it.type))
               .reduce((s, it) => s + Number(it.amount || 0), 0);
 }
 
-/* Доходные суммы: обычные доходы + взял в долг + получил долг */
 function sumIncomes(arr) {
     return arr.filter(it => isIncomeLike(it.type))
-              .reduce((s, it) => s + Number(it.amount || 0), 0);
-}
-
-/* Старая функция для совместимости (по конкретному типу) */
-function sumBy(arr, type) {
-    return arr.filter(it => it.type === type)
               .reduce((s, it) => s + Number(it.amount || 0), 0);
 }
 
@@ -1067,7 +1072,6 @@ function computeDebts() {
    СТАТИСТИКА ПО КАТЕГОРИЯМ
    ============================================================ */
 function computeCategories(arr, kind) {
-    // kind = 'expense' | 'income'
     const filterFn = kind === 'expense' ? isExpenseLike : isIncomeLike;
 
     const total = arr
@@ -1146,7 +1150,7 @@ function renderMonth() {
     monthItems.sort((a, b) => Number(b.amount) - Number(a.amount));
 
     if (monthItems.length === 0) {
-        list.innerHTML = `<tr><td colspan="5" class="empty">Нет записей за этот месяц</td></tr>`;
+        list.innerHTML = `<tr><td colspan="4" class="empty">Нет записей за этот месяц</td></tr>`;
     } else {
         list.innerHTML = monthItems.map(it => {
             const isDebt = isDebtType(it.type);
@@ -1173,9 +1177,6 @@ function renderMonth() {
                 </td>
                 <td data-label="Сумма" class="amount ${it.type}">
                     ${prefix} ${fmt(it.amount)}
-                </td>
-                <td class="actions">
-                    <button onclick="removeItem('${it.id}')">✕</button>
                 </td>
             </tr>`;
         }).join('');
@@ -1555,11 +1556,11 @@ function escapeHtml(s) {
    ЭКСПОРТ В ГЛОБАЛЬНУЮ ОБЛАСТЬ
    ============================================================ */
 window.addItem        = addItem;
-window.removeItem     = removeItem;
 window.shiftMonth     = shiftMonth;
 window.exportCSV      = exportCSV;
 window.setOwnerFilter = setOwnerFilter;
 window.onTypeChange   = onTypeChange;
+window.clearAllData   = clearAllData;
 
 document.getElementById('ownerFilter').addEventListener('click', e => {
     const btn = e.target.closest('button');
