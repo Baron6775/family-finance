@@ -18,7 +18,14 @@
         line-height: 1.5;
     }
 
-    h1 { color: #ffffff; font-size: 22px; margin: 0 0 6px; text-align: center; }
+    h1 { color: #ffffff; font-size: 22px; margin: 0 0 4px; text-align: center; }
+    .today-line {
+        text-align: center;
+        color: #6ba8ff;
+        font-size: 13px;
+        margin-bottom: 6px;
+        font-weight: 600;
+    }
     .subtitle { text-align: center; color: #8b929c; font-size: 14px; margin-bottom: 20px; }
     h2 { color: #ffffff; font-size: 17px; margin: 0 0 14px; }
 
@@ -34,7 +41,7 @@
 
     label { display: block; font-size: 13px; color: #8b929c; margin-bottom: 4px; }
 
-    input, select, textarea {
+    input, select {
         width: 100%;
         padding: 12px;
         font-size: 16px;
@@ -43,14 +50,12 @@
         border: 1px solid #3a4048;
         border-radius: 8px;
         outline: none;
-        font-family: inherit;
+        transition: border-color 0.15s, box-shadow 0.15s;
     }
 
-    textarea { resize: vertical; min-height: 60px; }
+    input::placeholder { color: #8b929c; }
 
-    input::placeholder, textarea::placeholder { color: #8b929c; }
-
-    input:focus, select:focus, textarea:focus {
+    input:focus, select:focus {
         border-color: #4c8dff;
         box-shadow: 0 0 0 3px rgba(76, 141, 255, 0.25);
     }
@@ -89,7 +94,101 @@
     button.danger:hover { background: #3a2024; color: #ff9a9a; }
 
     button.full { width: 100%; }
+    button.sm { padding: 8px 14px; font-size: 14px; }
 
+    /* ===== Счета ===== */
+    .accounts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 12px;
+    }
+
+    .account-card {
+        background: #1e2228;
+        border: 1px solid #2c3138;
+        border-radius: 10px;
+        padding: 16px;
+        border-top: 3px solid #3a4048;
+    }
+
+    .account-card.andrey { border-top-color: #4c8dff; }
+    .account-card.lera   { border-top-color: #ff8ddc; }
+
+    .account-card h3 {
+        margin: 0 0 12px;
+        font-size: 15px;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .account-card .balance {
+        font-size: 26px;
+        font-weight: 700;
+        color: #ffffff;
+        font-variant-numeric: tabular-nums;
+        margin-bottom: 4px;
+        word-break: break-word;
+    }
+
+    .account-card .balance.positive { color: #4cff9a; }
+    .account-card .balance.negative { color: #ff6b6b; }
+
+    .account-card .balance-sub {
+        font-size: 12px;
+        color: #8b929c;
+        margin-bottom: 12px;
+    }
+
+    .account-card .change-row {
+        display: flex;
+        gap: 8px;
+        align-items: flex-end;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #262b33;
+    }
+
+    .account-card .change-row .field {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .account-card .change-row button {
+        flex: 0 0 auto;
+        padding: 10px 14px;
+        font-size: 14px;
+    }
+
+    .account-total {
+        margin-top: 14px;
+        padding: 14px;
+        background: #1e2228;
+        border: 1px solid #2c3138;
+        border-radius: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .account-total .label {
+        font-size: 13px;
+        color: #8b929c;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .account-total .value {
+        font-size: 22px;
+        font-weight: 700;
+        color: #4cff9a;
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* ===== Месяц ===== */
     .month-nav {
         display: flex;
         justify-content: space-between;
@@ -539,7 +638,6 @@
         td.amount { text-align: right; justify-content: space-between; }
         td:first-child { font-weight: 600; color: #ffffff; }
 
-        /* Кнопки действий — отдельной строкой внизу карточки */
         td.actions {
             display: flex;
             justify-content: flex-end;
@@ -565,12 +663,53 @@
 <body>
 
 <h1>Семейные финансы</h1>
+<div class="today-line" id="todayLine">—</div>
 <div class="subtitle">Андрей & Леруська — общий учёт</div>
+
+<!-- ===== Счета ===== -->
+<div class="card">
+    <h2>💰 Счета</h2>
+    <div class="accounts-grid">
+        <div class="account-card andrey">
+            <h3>🔵 Андрей</h3>
+            <div class="balance" id="accAndreyBalance">0 ₽</div>
+            <div class="balance-sub" id="accAndreySub">начальный: 0 ₽</div>
+            <div class="change-row">
+                <div class="field">
+                    <label>Установить остаток</label>
+                    <input id="accAndreyInput" type="number" placeholder="0" step="0.01" inputmode="decimal">
+                </div>
+                <button class="sm" onclick="setAccountBalance('andrey')">Задать</button>
+            </div>
+        </div>
+        <div class="account-card lera">
+            <h3>🩷 Леруська</h3>
+            <div class="balance" id="accLeraBalance">0 ₽</div>
+            <div class="balance-sub" id="accLeraSub">начальный: 0 ₽</div>
+            <div class="change-row">
+                <div class="field">
+                    <label>Установить остаток</label>
+                    <input id="accLeraInput" type="number" placeholder="0" step="0.01" inputmode="decimal">
+                </div>
+                <button class="sm" onclick="setAccountBalance('lera')">Задать</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="account-total">
+        <span class="label">Итого на счетах</span>
+        <span class="value" id="accTotal">0 ₽</span>
+    </div>
+</div>
 
 <!-- ===== Добавление записи ===== -->
 <div class="card">
     <h2>Добавить запись</h2>
     <div class="row">
+        <div class="field">
+            <label>Дата</label>
+            <input id="dateInput" type="date">
+        </div>
         <div class="field">
             <label>Кто</label>
             <select id="owner">
@@ -647,6 +786,7 @@
         <table>
             <thead>
                 <tr>
+                    <th>Дата</th>
                     <th>Описание</th>
                     <th>Кто</th>
                     <th>Категория</th>
@@ -828,6 +968,10 @@
 
         <div class="row">
             <div class="field">
+                <label>Дата</label>
+                <input id="eDate" type="date">
+            </div>
+            <div class="field">
                 <label>Кто</label>
                 <select id="eOwner">
                     <option value="andrey">Андрей</option>
@@ -911,12 +1055,14 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const COLLECTION = "transactions";
+const ACCOUNTS_COLLECTION = "accounts";
 const ADMIN_PASSWORD = '3058';
 
 /* ============================================================
    СОСТОЯНИЕ
    ============================================================ */
 let items = [];
+let accounts = { andrey: 0, lera: 0 };
 let currentYear, currentMonth;
 let ownerFilter = "all";
 let catKind = "expense";
@@ -960,6 +1106,28 @@ function fmt(n) {
 
 function monthKey(y, m) {
     return `${y}-${String(m + 1).padStart(2, '0')}`;
+}
+
+function todayISO() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+function formatDateRu(iso) {
+    if (!iso) return '';
+    const [y, m, d] = iso.split('-');
+    return `${d}.${m}.${y}`;
+}
+
+function formatTodayRu() {
+    const now = new Date();
+    const days = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
+    const months = ['января','февраля','марта','апреля','мая','июня',
+                    'июля','августа','сентября','октября','ноября','декабря'];
+    return `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
 }
 
 function setStatus(text, cls = '') {
@@ -1032,7 +1200,7 @@ function onEditTypeChange() {
 }
 
 /* ============================================================
-   FIRESTORE
+   FIRESTORE: подписки
    ============================================================ */
 function subscribe() {
     db.collection(COLLECTION).orderBy('date', 'asc').onSnapshot(snap => {
@@ -1043,12 +1211,86 @@ function subscribe() {
         console.error(err);
         setStatus('Ошибка Firebase: ' + err.message, 'err');
     });
+
+    // Счета
+    db.collection(ACCOUNTS_COLLECTION).doc('main').onSnapshot(doc => {
+        if (doc.exists) {
+            const data = doc.data();
+            accounts = {
+                andrey: Number(data.andrey || 0),
+                lera:   Number(data.lera   || 0)
+            };
+        } else {
+            accounts = { andrey: 0, lera: 0 };
+        }
+        renderAccounts();
+    }, err => {
+        console.error('accounts error:', err);
+    });
+}
+
+/* ============================================================
+   СЧЕТА
+   ============================================================ */
+function setAccountBalance(owner) {
+    const input = document.getElementById(owner === 'andrey' ? 'accAndreyInput' : 'accLeraInput');
+    const value = Number(input.value);
+
+    if (isNaN(value)) { setStatus('Введите число', 'err'); return; }
+
+    db.collection(ACCOUNTS_COLLECTION).doc('main').set(
+        { [owner]: value },
+        { merge: true }
+    ).then(() => {
+        input.value = '';
+        setStatus('Остаток обновлён', 'ok');
+        setTimeout(() => setStatus(''), 1500);
+    }).catch(e => {
+        console.error(e);
+        setStatus('Ошибка сохранения: ' + e.message, 'err');
+    });
+}
+
+function calcCurrentAccount(owner) {
+    // Начальный остаток + все доходные операции − все расходные операции
+    let balance = accounts[owner] || 0;
+
+    items.forEach(it => {
+        if (it.owner !== owner) return;
+        const amt = Number(it.amount || 0);
+
+        if (isIncomeLike(it.type)) balance += amt;
+        else if (isExpenseLike(it.type)) balance -= amt;
+    });
+
+    return balance;
+}
+
+function renderAccounts() {
+    const andreyCurrent = calcCurrentAccount('andrey');
+    const leraCurrent   = calcCurrentAccount('lera');
+    const total = andreyCurrent + leraCurrent;
+
+    const elA = document.getElementById('accAndreyBalance');
+    elA.textContent = fmt(andreyCurrent);
+    elA.className = 'balance ' + (andreyCurrent >= 0 ? 'positive' : 'negative');
+
+    const elL = document.getElementById('accLeraBalance');
+    elL.textContent = fmt(leraCurrent);
+    elL.className = 'balance ' + (leraCurrent >= 0 ? 'positive' : 'negative');
+
+    document.getElementById('accAndreySub').textContent = 'начальный: ' + fmt(accounts.andrey || 0);
+    document.getElementById('accLeraSub').textContent   = 'начальный: ' + fmt(accounts.lera   || 0);
+
+    document.getElementById('accTotal').textContent = fmt(total);
+    document.getElementById('accTotal').style.color = total >= 0 ? '#4cff9a' : '#ff6b6b';
 }
 
 /* ============================================================
    ДОБАВЛЕНИЕ
    ============================================================ */
 function addItem() {
+    const date = document.getElementById('dateInput').value || todayISO();
     const desc = document.getElementById('desc').value.trim();
     const amount = Number(document.getElementById('amount').value);
     const type = document.getElementById('type').value;
@@ -1070,8 +1312,6 @@ function addItem() {
         return;
     }
 
-    const date = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`;
-
     const data = { date, desc, category, amount, type, owner, createdAt: Date.now() };
     if (isDebtType(type)) data.counterparty = counterparty;
 
@@ -1080,6 +1320,8 @@ function addItem() {
         document.getElementById('desc').value = '';
         document.getElementById('amount').value = '';
         document.getElementById('counterparty').value = '';
+        // Дата возвращается на сегодня
+        document.getElementById('dateInput').value = todayISO();
         setStatus('Добавлено', 'ok');
         setTimeout(() => setStatus(''), 1500);
     }).catch(e => {
@@ -1097,6 +1339,7 @@ function openEditModal(id) {
 
     editingId = id;
 
+    document.getElementById('eDate').value = it.date || todayISO();
     document.getElementById('eOwner').value = it.owner || 'andrey';
     document.getElementById('eType').value = it.type || 'expense';
     document.getElementById('eCategory').value = it.category || 'Прочее';
@@ -1119,6 +1362,7 @@ function closeEditModal() {
 function saveEdit() {
     if (!editingId) return;
 
+    const date = document.getElementById('eDate').value || todayISO();
     const desc = document.getElementById('eDesc').value.trim();
     const amount = Number(document.getElementById('eAmount').value);
     const type = document.getElementById('eType').value;
@@ -1130,7 +1374,7 @@ function saveEdit() {
     if (!amount || amount <= 0) { setStatus('Введите сумму больше нуля', 'err'); return; }
     if (isDebtType(type) && !counterparty) { setStatus('Укажите контрагента', 'err'); return; }
 
-    const data = { desc, category, amount, type, owner };
+    const data = { date, desc, category, amount, type, owner };
     if (isDebtType(type)) data.counterparty = counterparty;
     else data.counterparty = firebase.firestore.FieldValue.delete();
 
@@ -1146,7 +1390,7 @@ function saveEdit() {
 }
 
 /* ============================================================
-   УДАЛЕНИЕ ОДНОЙ ЗАПИСИ (по паролю)
+   УДАЛЕНИЕ ОДНОЙ ЗАПИСИ
    ============================================================ */
 function removeItemWithPassword(id) {
     const it = items.find(x => x.id === id);
@@ -1177,10 +1421,14 @@ function removeItemWithPassword(id) {
 }
 
 /* ============================================================
-   ОЧИСТКА ВСЕХ ДАННЫХ (по паролю)
+   ОЧИСТКА ВСЕХ ДАННЫХ (транзакции, счета остаются)
    ============================================================ */
 function clearAllData() {
-    const input = prompt('Введите пароль для очистки всех данных:');
+    const input = prompt(
+        '⚠️ Удалить ВСЕ транзакции?\n\n' +
+        'Счета (остатки) НЕ удаляются.\n\n' +
+        'Введите пароль:'
+    );
     if (input === null) return;
 
     if (input !== ADMIN_PASSWORD) {
@@ -1188,7 +1436,7 @@ function clearAllData() {
         return;
     }
 
-    if (!confirm('⚠️ ВНИМАНИЕ! Все данные будут безвозвратно удалены. Продолжить?')) {
+    if (!confirm('⚠️ ВНИМАНИЕ! Все транзакции будут безвозвратно удалены. Продолжить?')) {
         return;
     }
 
@@ -1201,7 +1449,7 @@ function clearAllData() {
             return batch.commit();
         })
         .then(() => {
-            setStatus('Все данные удалены', 'ok');
+            setStatus('Все транзакции удалены', 'ok');
             setTimeout(() => setStatus(''), 2000);
         })
         .catch(e => {
@@ -1370,6 +1618,7 @@ function renderCategories() {
    ОТРИСОВКА
    ============================================================ */
 function renderAll() {
+    renderAccounts();
     renderMonth();
     renderDebts();
     renderPeople();
@@ -1391,10 +1640,14 @@ function renderMonth() {
         monthItems = monthItems.filter(it => it.owner === ownerFilter);
     }
 
-    monthItems.sort((a, b) => Number(b.amount) - Number(a.amount));
+    // Сортировка: сначала по дате (новые сверху), потом по сумме
+    monthItems.sort((a, b) => {
+        if (a.date !== b.date) return (b.date || '').localeCompare(a.date || '');
+        return Number(b.amount) - Number(a.amount);
+    });
 
     if (monthItems.length === 0) {
-        list.innerHTML = `<tr><td colspan="5" class="empty">Нет записей за этот месяц</td></tr>`;
+        list.innerHTML = `<tr><td colspan="6" class="empty">Нет записей за этот месяц</td></tr>`;
     } else {
         list.innerHTML = monthItems.map(it => {
             const isDebt = isDebtType(it.type);
@@ -1413,6 +1666,7 @@ function renderMonth() {
 
             return `
             <tr>
+                <td data-label="Дата">${formatDateRu(it.date)}</td>
                 <td data-label="Описание">${descText}</td>
                 <td data-label="Кто"><span class="badge ${it.owner}">${OWNER_LABEL[it.owner] || it.owner}</span></td>
                 <td data-label="Категория">
@@ -1751,17 +2005,18 @@ function escapeHtml(s) {
 /* ============================================================
    ЭКСПОРТ В ГЛОБАЛЬНУЮ ОБЛАСТЬ
    ============================================================ */
-window.addItem               = addItem;
-window.shiftMonth            = shiftMonth;
-window.exportCSV             = exportCSV;
-window.setOwnerFilter        = setOwnerFilter;
-window.onTypeChange          = onTypeChange;
-window.onEditTypeChange      = onEditTypeChange;
-window.openEditModal         = openEditModal;
-window.closeEditModal        = closeEditModal;
-window.saveEdit              = saveEdit;
+window.addItem                = addItem;
+window.shiftMonth             = shiftMonth;
+window.exportCSV              = exportCSV;
+window.setOwnerFilter         = setOwnerFilter;
+window.onTypeChange           = onTypeChange;
+window.onEditTypeChange       = onEditTypeChange;
+window.openEditModal          = openEditModal;
+window.closeEditModal         = closeEditModal;
+window.saveEdit               = saveEdit;
 window.removeItemWithPassword = removeItemWithPassword;
-window.clearAllData          = clearAllData;
+window.clearAllData           = clearAllData;
+window.setAccountBalance      = setAccountBalance;
 
 document.getElementById('ownerFilter').addEventListener('click', e => {
     const btn = e.target.closest('button');
@@ -1788,7 +2043,11 @@ document.addEventListener('keydown', e => {
 /* ============================================================
    СТАРТ
    ============================================================ */
-subscribe();
+(function init() {
+    document.getElementById('todayLine').textContent = formatTodayRu();
+    document.getElementById('dateInput').value = todayISO();
+    subscribe();
+})();
 </script>
 </body>
 </html>
