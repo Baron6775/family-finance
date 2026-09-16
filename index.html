@@ -1094,7 +1094,7 @@ const ACCOUNTS_COLLECTION = "accounts";
 const ADMIN_PASSWORD = '3058';
 
 /* ============================================================
-   КРЕДИТЫ (4 Сбера + 1 личный долг)
+   КРЕДИТЫ (5 банковских + 1 личный долг)
    ============================================================ */
 const LOANS = [
     {
@@ -1132,6 +1132,15 @@ const LOANS = [
         monthlyPayment: 11121.04, nextPaymentDate: '2026-10-02',
         nextPaymentBreakdown: { body: 3588.64, interest: 7532.40, penalty: 58.63 },
         totalRemaining: 312185.95
+    },
+    {
+        id: 'artem-5', bank: 'Артём', name: 'Кредит Артёма',
+        initialAmount: 1486000.00, openDate: '2021-08-11', closeDate: '2029-08-13',
+        paymentDay: 23, rate: 6.00,
+        bodyDebt: 715435.10, interestRemaining: 115136.34, penalty: 0,
+        monthlyPayment: 23731.64, nextPaymentDate: '2026-10-23',
+        nextPaymentBreakdown: { body: 18804.49, interest: 4927.15, penalty: 0 },
+        totalRemaining: 830571.44
     },
     {
         id: 'tetya-tanya',
