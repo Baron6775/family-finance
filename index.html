@@ -419,8 +419,10 @@
             <select id="type" onchange="onTypeChange()">
                 <option value="expense">Расход</option>
                 <option value="income">Доход</option>
-                <option value="debt-in">Взял в долг</option>
-                <option value="debt-out">Вернул долг</option>
+                <option value="debt-in">Взял в долг (я должен)</option>
+                <option value="debt-out">Вернул долг (я отдал)</option>
+                <option value="debt-give">Дал в долг (мне должны)</option>
+                <option value="debt-get">Получил долг (мне вернули)</option>
             </select>
         </div>
         <div class="field">
@@ -676,17 +678,21 @@ const MONTHS = ['Январь','Февраль','Март','Апрель','Ма�
 const OWNER_LABEL = { andrey: 'Андрей', lera: 'Леруська', shared: 'Совместно' };
 
 const TYPE_LABEL = {
-    income:   'Доход',
-    expense:  'Расход',
-    'debt-in':  'Взял в долг',
-    'debt-out': 'Вернул долг'
+    income:      'Доход',
+    expense:     'Расход',
+    'debt-in':   'Взял в долг',
+    'debt-out':  'Вернул долг',
+    'debt-give': 'Дал в долг',
+    'debt-get':  'Получил долг'
 };
 
 const TYPE_BADGE = {
-    income:   'income',
-    expense:  'expense',
-    'debt-in':  'debt-in',
-    'debt-out': 'debt-out'
+    income:      'income',
+    expense:     'expense',
+    'debt-in':   'debt-in',
+    'debt-out':  'debt-out',
+    'debt-give': 'debt-out',
+    'debt-get':  'debt-in'
 };
 
 function fmt(n) {
@@ -703,7 +709,10 @@ function setStatus(text, cls = '') {
     el.className = 'status ' + cls;
 }
 
-function isDebtType(t) { return t === 'debt-in' || t === 'debt-out'; }
+function isDebtType(t) {
+    return t === 'debt-in' || t === 'debt-out'
+        || t === 'debt-give' || t === 'debt-get';
+}
 
 /* ============================================================
    ФОРМА: показ/скрытие поля «Контрагент»
@@ -714,10 +723,16 @@ function onTypeChange() {
     const label = document.getElementById('counterpartyLabel');
     const catSelect = document.getElementById('category');
 
+    const labels = {
+        'debt-in':   'У кого взял',
+        'debt-out':  'Кому вернул',
+        'debt-give': 'Кому дал',
+        'debt-get':  'От кого получил'
+    };
+
     if (isDebtType(type)) {
         field.classList.remove('hidden');
-        label.textContent = type === 'debt-in' ? 'У кого взял' : 'Кому вернул';
-        // Автоматически ставим категорию «Долг»
+        label.textContent = labels[type] || 'Контрагент';
         catSelect.value = 'Долг';
     } else {
         field.classList.add('hidden');
@@ -752,8 +767,15 @@ function addItem() {
 
     if (!desc)   { setStatus('Введите описание', 'err'); return; }
     if (!amount || amount <= 0) { setStatus('Введите сумму больше нуля', 'err'); return; }
+
     if (isDebtType(type) && !counterparty) {
-        setStatus(type === 'debt-in' ? 'Укажите, у кого взяли' : 'Укажите, кому вернули', 'err');
+        const msg = {
+            'debt-in':   'Укажите, у кого взяли',
+            'debt-out':  'Укажите, кому вернули',
+            'debt-give': 'Укажите, кому дали',
+            'debt-get':  'Укажите, от кого получили'
+        }[type] || 'Укажите контрагента';
+        setStatus(msg, 'err');
         return;
     }
 
@@ -828,11 +850,6 @@ function sumBy(arr, type) {
               .reduce((s, it) => s + Number(it.amount || 0), 0);
 }
 
-function sumByTypes(arr, types) {
-    return arr.filter(it => types.includes(it.type))
-              .reduce((s, it) => s + Number(it.amount || 0), 0);
-}
-
 function getYearTotals(y) {
     const result = [];
     for (let m = 0; m < 12; m++) {
@@ -848,20 +865,22 @@ function getYearTotals(y) {
 
 /* ============================================================
    ДОЛГИ — расчёт по контрагентам
+   ============================================================
+   Логика:
+     owe  — сколько я должен контрагенту
+     owed — сколько контрагент должен мне
+
+     debt-in   (я взял)      → owe += сумма
+     debt-out  (я вернул)    → owe -= сумма
+     debt-give (я дал)       → owed += сумма
+     debt-get  (мне вернули) → owed -= сумма
+
+     баланс = owe - owed
+       > 0 → я должен
+       < 0 → мне должны
+       = 0 → долг закрыт
    ============================================================ */
-/*
-  Логика:
-  - debt-in: «взял в долг» — я должен контрагенту. Увеличивает мой долг.
-  - debt-out: «вернул долг» — я погасил часть. Уменьшает мой долг.
-
-  Для каждого контрагента считаем:
-    balance = сумма(debt-in) - сумма(debt-out)
-
-  Если balance > 0 — я должен этому человеку.
-  Если balance < 0 — этот человек должен мне (переплатил или занял больше).
-*/
 function computeDebts() {
-    // Ключ — контрагент (по нормализованному имени)
     const map = new Map();
 
     items.forEach(it => {
@@ -879,16 +898,19 @@ function computeDebts() {
         const amt = Number(it.amount || 0);
 
         if (it.type === 'debt-in') {
-            entry.owe += amt; // я должен
+            entry.owe += amt;
         } else if (it.type === 'debt-out') {
-            entry.owed += amt; // я отдаю — уменьшает долг
+            entry.owe -= amt;
+        } else if (it.type === 'debt-give') {
+            entry.owed += amt;
+        } else if (it.type === 'debt-get') {
+            entry.owed -= amt;
         }
     });
 
-    // Чистый баланс по каждому контрагенту
     const list = [];
-    let totalOwe = 0;  // сколько я должен
-    let totalOwed = 0; // сколько мне должны
+    let totalOwe = 0;
+    let totalOwed = 0;
 
     map.forEach(e => {
         const balance = e.owe - e.owed;
@@ -937,11 +959,14 @@ function renderMonth() {
     } else {
         list.innerHTML = monthItems.map(it => {
             const isDebt = isDebtType(it.type);
+
             const prefix =
-                it.type === 'income' ? '+' :
-                it.type === 'expense' ? '−' :
-                it.type === 'debt-in' ? '↓' :
-                it.type === 'debt-out' ? '↑' : '';
+                it.type === 'income'    ? '+' :
+                it.type === 'expense'   ? '−' :
+                it.type === 'debt-in'   ? '↓' :
+                it.type === 'debt-out'  ? '↑' :
+                it.type === 'debt-give' ? '→' :
+                it.type === 'debt-get'  ? '←' : '';
 
             const descText = isDebt && it.counterparty
                 ? `${escapeHtml(it.desc)} <span style="color:#8b929c">(${escapeHtml(it.counterparty)})</span>`
@@ -985,14 +1010,13 @@ function renderDebts() {
     document.getElementById('debtOwedTotal').textContent = fmt(totalOwed);
 
     const balEl = document.getElementById('debtBalance');
-    // Если balance > 0 — мне должны больше; если < 0 — я должен больше
     balEl.textContent = (balance >= 0 ? '+' : '−') + ' ' + fmt(Math.abs(balance));
     balEl.style.color = balance >= 0 ? '#4cff9a' : '#ff6b6b';
 
     const container = document.getElementById('debtList');
 
     if (list.length === 0) {
-        container.innerHTML = `<div class="debt-hint">Пока нет долговых записей</div>`;
+        container.innerHTML = `<div class="debt-hint">Пока нет активных долгов</div>`;
         return;
     }
 
@@ -1013,7 +1037,6 @@ function renderDebts() {
 /* -------- По людям за месяц -------- */
 function renderPeople() {
     const build = (owner, prefix) => {
-        // Для «Совместно» — сумма обоих
         let mi;
         if (owner === 'shared') {
             mi = getMonthItems(currentYear, currentMonth);
@@ -1131,9 +1154,6 @@ function setDelta(elId, current, prev, invertColor) {
     el.textContent = `${sign}${pct.toFixed(1)}% к прошлому месяцу`;
 
     if (Math.abs(pct) < 0.05) el.className = 'delta flat';
-    else if (diff > 0) el.className = 'delta invertColor' ? '' : '';
-    // (защита от опечатки)
-    if (Math.abs(pct) < 0.05) el.className = 'delta flat';
     else if (diff > 0) el.className = invertColor ? 'delta down' : 'delta up';
     else el.className = invertColor ? 'delta up' : 'delta down';
 }
@@ -1216,7 +1236,6 @@ function renderCharts() {
     for (let m = 0; m < 12; m++) {
         andreyData.push(sumBy(getMonthItems(currentYear, m, 'andrey'), 'expense'));
         leraData.push(  sumBy(getMonthItems(currentYear, m, 'lera'),   'expense'));
-        // shared — сумма обоих
         sharedData.push(
             sumBy(getMonthItems(currentYear, m, 'andrey'), 'expense') +
             sumBy(getMonthItems(currentYear, m, 'lera'),   'expense')
@@ -1351,7 +1370,6 @@ window.exportCSV      = exportCSV;
 window.setOwnerFilter = setOwnerFilter;
 window.onTypeChange   = onTypeChange;
 
-/* Фильтр по владельцу */
 document.getElementById('ownerFilter').addEventListener('click', e => {
     const btn = e.target.closest('button');
     if (!btn) return;
