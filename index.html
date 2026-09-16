@@ -89,7 +89,6 @@
     button.danger:hover { background: #3a2024; color: #ff9a9a; }
 
     button.full { width: 100%; }
-    button.sm { padding: 6px 10px; font-size: 13px; }
 
     .month-nav {
         display: flex;
@@ -144,7 +143,7 @@
     td.amount.debt-out { color: #8b929c; }
 
     td.actions { text-align: right; white-space: nowrap; width: 1%; }
-    td.actions button { padding: 4px 8px; font-size: 13px; margin-left: 4px; }
+    td.actions button { padding: 6px 10px; font-size: 13px; margin-left: 4px; }
     td.actions .edit { background: #1e3a5f; color: #6ba8ff; border: 1px solid #2c588a; }
     td.actions .edit:hover { background: #2c588a; color: #a8c8ff; }
     td.actions .del { background: #3a2024; color: #ff6b6b; border: 1px solid #5a2a2f; }
@@ -500,6 +499,9 @@
 
     .modal .actions button { flex: 0 0 auto; }
 
+    /* ============================================================
+       МОБИЛЬНАЯ ВЕРСИЯ
+       ============================================================ */
     @media (max-width: 640px) {
         body { padding: 12px; }
         h1 { font-size: 20px; }
@@ -507,6 +509,7 @@
 
         table, thead, tbody, th, td, tr { display: block; }
         thead { display: none; }
+
         tr {
             background: #1e2228;
             border: 1px solid #2c3138;
@@ -514,6 +517,7 @@
             padding: 10px;
             margin-bottom: 8px;
         }
+
         td {
             border: none;
             padding: 4px 0;
@@ -522,17 +526,37 @@
             gap: 10px;
             text-align: left;
         }
+
         td::before {
             content: attr(data-label);
             color: #8b929c;
             font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            flex: 0 0 auto;
         }
+
         td.amount { text-align: right; justify-content: space-between; }
-        td.actions { justify-content: flex-end; }
-        td.actions::before { content: none; }
         td:first-child { font-weight: 600; color: #ffffff; }
+
+        /* Кнопки действий — отдельной строкой внизу карточки */
+        td.actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding-top: 10px;
+            margin-top: 8px;
+            border-top: 1px solid #262b33;
+            width: 100%;
+        }
+        td.actions::before { content: none; }
+        td.actions button {
+            flex: 0 0 auto;
+            padding: 10px 14px;
+            font-size: 14px;
+            margin-left: 0;
+        }
+
         .modal .actions { flex-direction: column; }
         .modal .actions button { width: 100%; }
     }
@@ -949,9 +973,6 @@ function isDebtType(t) {
         || t === 'debt-give' || t === 'debt-get';
 }
 
-/* ============================================================
-   ДОЛГОВЫЕ ОПЕРАЦИИ УЧИТЫВАЮТСЯ В ДОХОДАХ/РАСХОДАХ
-   ============================================================ */
 function isExpenseLike(t) {
     return t === 'expense' || t === 'debt-out' || t === 'debt-give';
 }
@@ -1086,11 +1107,13 @@ function openEditModal(id) {
     onEditTypeChange();
 
     document.getElementById('editModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
 }
 
 function closeEditModal() {
     editingId = null;
     document.getElementById('editModal').classList.remove('show');
+    document.body.style.overflow = '';
 }
 
 function saveEdit() {
@@ -1400,8 +1423,8 @@ function renderMonth() {
                     ${prefix} ${fmt(it.amount)}
                 </td>
                 <td class="actions">
-                    <button class="edit" onclick="openEditModal('${it.id}')" title="Редактировать">✏️</button>
-                    <button class="del" onclick="removeItemWithPassword('${it.id}')" title="Удалить">✕</button>
+                    <button class="edit" onclick="openEditModal('${it.id}')">✏️ Изменить</button>
+                    <button class="del" onclick="removeItemWithPassword('${it.id}')">✕ Удалить</button>
                 </td>
             </tr>`;
         }).join('');
@@ -1752,12 +1775,10 @@ document.getElementById('catToggle').addEventListener('click', e => {
     setCatKind(btn.dataset.kind);
 });
 
-/* Закрытие модального окна по клику на фон */
 document.getElementById('editModal').addEventListener('click', e => {
     if (e.target.id === 'editModal') closeEditModal();
 });
 
-/* Escape — закрыть модальное окно */
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && document.getElementById('editModal').classList.contains('show')) {
         closeEditModal();
