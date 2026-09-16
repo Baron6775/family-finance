@@ -50,7 +50,7 @@
         display: flex;
         gap: 10px;
         flex-wrap: wrap;
-        align-items: center;
+        align-items: flex-end;
     }
 
     label {
@@ -63,7 +63,7 @@
     input, select {
         width: 100%;
         padding: 12px;
-        font-size: 16px; /* 16px чтобы iOS не зумил при фокусе */
+        font-size: 16px;
         color: #ffffff;
         background: #1e2228;
         border: 1px solid #3a4048;
@@ -146,7 +146,6 @@
         border-color: #2b6cff;
     }
 
-    /* --- Таблица: на телефоне превращается в карточки --- */
     .table-wrap { overflow-x: auto; }
 
     table {
@@ -337,16 +336,14 @@
         min-height: 16px;
     }
 
-    .status.ok    { color: #4cff9a; }
-    .status.err   { color: #ff6b6b; }
+    .status.ok  { color: #4cff9a; }
+    .status.err { color: #ff6b6b; }
 
-    /* --- Мобильная адаптация --- */
     @media (max-width: 640px) {
         body { padding: 12px; }
         h1 { font-size: 20px; }
         .card { padding: 14px; }
 
-        /* Таблица превращается в список карточек */
         table, thead, tbody, th, td, tr { display: block; }
         thead { display: none; }
         tr {
@@ -423,7 +420,7 @@
             <label>Сумма, ₽</label>
             <input id="amount" type="number" placeholder="0" min="0" step="0.01" inputmode="decimal">
         </div>
-        <div class="field" style="flex:0 0 auto; align-self:flex-end;">
+        <div class="field" style="flex:0 0 auto;">
             <button onclick="addItem()" style="width:100%">Добавить</button>
         </div>
     </div>
@@ -504,7 +501,7 @@
     </div>
 </div>
 
-<!-- ===== Общая статистика за год ===== -->
+<!-- ===== Общая статистика ===== -->
 <div class="card">
     <h2>Годовая статистика (все вместе)</h2>
     <div class="stats">
@@ -583,43 +580,39 @@
 <button class="ghost full" style="margin-bottom:8px" onclick="exportCSV()">Экспорт в CSV</button>
 
 <!-- ============================================================
-     Firebase SDK
+     Firebase SDK (совместимая версия — работает без type="module")
      ============================================================ -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import {
-    getFirestore, collection, addDoc, deleteDoc, doc,
-    onSnapshot, query, orderBy
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
+<script>
 /* ============================================================
    ⬇⬇⬇  ВСТАВЬТЕ СЮДА ВАШ firebaseConfig ИЗ КОНСОЛИ FIREBASE  ⬇⬇⬇
    ============================================================ */
 const firebaseConfig = {
- apiKey: "AIzaSyCfGt-rOprLVx5BKfiuWQohYNvfPDPdusk",
- authDomain: "family-finance-72604.firebaseapp.com",
- projectId: "family-finance-72604",
- storageBucket: "family-finance-72604.firebasestorage.app",
- messagingSenderId: "241336270344",
- appId: "1:241336270344:web:cef117718df6fb49121bbd",
- measurementId: "G-1DDWSQ0M56"
-  };
+    apiKey: "ВСТАВЬТЕ_СЮДА",
+    authDomain: "ВСТАВЬТЕ_СЮДА",
+    projectId: "ВСТАВЬТЕ_СЮДА",
+    storageBucket: "ВСТАВЬТЕ_СЮДА",
+    messagingSenderId: "ВСТАВЬТЕ_СЮДА",
+    appId: "ВСТАВЬТЕ_СЮДА"
+};
 /* ============================================================
    ⬆⬆⬆  КОНЕЦ ВСТАВКИ  ⬆⬆⬆
    ============================================================ */
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 const COLLECTION = "transactions";
 
 /* ============================================================
    СОСТОЯНИЕ
    ============================================================ */
-let items = [];                      // все записи из Firestore
-let currentYear, currentMonth;       // выбранный месяц
+let items = [];
+let currentYear, currentMonth;
 let ownerFilter = "all";
 
-/* Автоматически ставим текущий месяц при загрузке */
 (function initCurrentMonth() {
     const now = new Date();
     currentYear = now.getFullYear();
@@ -652,21 +645,20 @@ function setStatus(text, cls = '') {
    FIRESTORE: подписка в реальном времени
    ============================================================ */
 function subscribe() {
-    const q = query(collection(db, COLLECTION), orderBy('date', 'asc'));
-    onSnapshot(q, snap => {
+    db.collection(COLLECTION).orderBy('date', 'asc').onSnapshot(snap => {
         items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         setStatus('Синхронизировано', 'ok');
         renderAll();
     }, err => {
         console.error(err);
-        setStatus('Ошибка подключения к Firebase: ' + err.message, 'err');
+        setStatus('Ошибка Firebase: ' + err.message, 'err');
     });
 }
 
 /* ============================================================
    ДОБАВЛЕНИЕ / УДАЛЕНИЕ
    ============================================================ */
-async function addItem() {
+function addItem() {
     const desc = document.getElementById('desc').value.trim();
     const amount = Number(document.getElementById('amount').value);
     const type = document.getElementById('type').value;
@@ -678,34 +670,32 @@ async function addItem() {
 
     const date = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`;
 
-    try {
-        setStatus('Сохранение…');
-        await addDoc(collection(db, COLLECTION), {
-            date, desc, category, amount, type, owner,
-            createdAt: Date.now()
-        });
-
+    setStatus('Сохранение…');
+    db.collection(COLLECTION).add({
+        date, desc, category, amount, type, owner,
+        createdAt: Date.now()
+    }).then(() => {
         document.getElementById('desc').value = '';
         document.getElementById('amount').value = '';
         setStatus('Добавлено', 'ok');
-
         setTimeout(() => setStatus(''), 1500);
-    } catch (e) {
+    }).catch(e => {
         console.error(e);
         setStatus('Ошибка сохранения: ' + e.message, 'err');
-    }
+    });
 }
 
-async function removeItem(id) {
+function removeItem(id) {
     if (!confirm('Удалить запись?')) return;
-    try {
-        await deleteDoc(doc(db, COLLECTION, id));
-        setStatus('Удалено', 'ok');
-        setTimeout(() => setStatus(''), 1500);
-    } catch (e) {
-        console.error(e);
-        setStatus('Ошибка удаления: ' + e.message, 'err');
-    }
+    db.collection(COLLECTION).doc(id).delete()
+        .then(() => {
+            setStatus('Удалено', 'ok');
+            setTimeout(() => setStatus(''), 1500);
+        })
+        .catch(e => {
+            console.error(e);
+            setStatus('Ошибка удаления: ' + e.message, 'err');
+        });
 }
 
 /* ============================================================
@@ -718,15 +708,13 @@ function shiftMonth(delta) {
     renderAll();
 }
 
-document.getElementById('ownerFilter').addEventListener('click', e => {
-    const btn = e.target.closest('button');
-    if (!btn) return;
-    ownerFilter = btn.dataset.owner;
+function setOwnerFilter(owner) {
+    ownerFilter = owner;
     document.querySelectorAll('#ownerFilter button').forEach(b =>
-        b.classList.toggle('active', b === btn)
+        b.classList.toggle('active', b.dataset.owner === owner)
     );
     renderAll();
-});
+}
 
 /* ============================================================
    ВЫБОРКИ
@@ -831,4 +819,328 @@ function renderPeople() {
 
         const balEl = document.getElementById(prefix + 'Balance');
         balEl.textContent = fmt(balance);
-        balEl
+        balEl.style.color = balance >= 0 ? '#4cff9a' : '#ff6b6b';
+
+        const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+        const prevYear  = currentMonth === 0 ? currentYear - 1 : currentYear;
+        const prev = getMonthItems(prevYear, prevMonth, owner);
+        const prevExpense = sumBy(prev, 'expense');
+
+        const el = document.getElementById(prefix + 'Delta');
+        if (!prevExpense) {
+            el.textContent = '— нет данных за прошлый месяц';
+            el.className = 'delta flat';
+        } else {
+            const diff = expense - prevExpense;
+            const pct = (diff / prevExpense) * 100;
+            const sign = diff > 0 ? '+' : '';
+            el.textContent = `Расходы: ${sign}${pct.toFixed(1)}% к прошлому месяцу`;
+            if (Math.abs(pct) < 0.05) el.className = 'delta flat';
+            else if (diff > 0) el.className = 'delta down';
+            else el.className = 'delta up';
+        }
+    };
+
+    build('andrey', 'andrey');
+    build('lera',   'lera');
+    build('shared', 'shared');
+}
+
+/* -------- Годовая статистика -------- */
+function renderYearStats() {
+    const yearItems = getYearItems(currentYear);
+    const income  = sumBy(yearItems, 'income');
+    const expense = sumBy(yearItems, 'expense');
+    const balance = income - expense;
+
+    document.getElementById('yearIncome').textContent  = fmt(income);
+    document.getElementById('yearExpense').textContent = fmt(expense);
+
+    const balEl = document.getElementById('yearBalance');
+    balEl.textContent = fmt(balance);
+    balEl.style.color = balance >= 0 ? '#4cff9a' : '#ff6b6b';
+
+    const monthsWithData = new Set(
+        yearItems.map(it => it.date.slice(0, 7))
+    ).size || 1;
+    document.getElementById('yearAvgExpense').textContent =
+        fmt(expense / monthsWithData);
+}
+
+/* -------- Дельты месяца -------- */
+function renderMonthDeltas() {
+    const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const prevYear  = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+    const cur = getMonthItems(currentYear, currentMonth);
+    const prev = getMonthItems(prevYear, prevMonth);
+
+    const curIncome  = sumBy(cur, 'income');
+    const curExpense = sumBy(cur, 'expense');
+    const prevIncome  = sumBy(prev, 'income');
+    const prevExpense = sumBy(prev, 'expense');
+
+    document.getElementById('statIncome').textContent  = fmt(curIncome);
+    document.getElementById('statExpense').textContent = fmt(curExpense);
+
+    setDelta('deltaIncome',  curIncome,  prevIncome,  false);
+    setDelta('deltaExpense', curExpense, prevExpense, true);
+
+    let ytdIncome = 0, ytdExpense = 0;
+    for (let m = 0; m <= currentMonth; m++) {
+        const mi = getMonthItems(currentYear, m);
+        ytdIncome  += sumBy(mi, 'income');
+        ytdExpense += sumBy(mi, 'expense');
+    }
+    document.getElementById('statIncomeYTD').textContent  = fmt(ytdIncome);
+    document.getElementById('statExpenseYTD').textContent = fmt(ytdExpense);
+
+    let prevYtdIncome = 0, prevYtdExpense = 0;
+    for (let m = 0; m < currentMonth; m++) {
+        const mi = getMonthItems(currentYear, m);
+        prevYtdIncome  += sumBy(mi, 'income');
+        prevYtdExpense += sumBy(mi, 'expense');
+    }
+    setDelta('deltaIncomeYTD',  ytdIncome,  prevYtdIncome,  false);
+    setDelta('deltaExpenseYTD', ytdExpense, prevYtdExpense, true);
+}
+
+function setDelta(elId, current, prev, invertColor) {
+    const el = document.getElementById(elId);
+    if (!prev) {
+        el.textContent = '— нет данных за прошлый период';
+        el.className = 'delta flat';
+        return;
+    }
+    const diff = current - prev;
+    const pct = (diff / prev) * 100;
+    const sign = diff > 0 ? '+' : '';
+    el.textContent = `${sign}${pct.toFixed(1)}% к прошлому месяцу`;
+
+    if (Math.abs(pct) < 0.05) el.className = 'delta flat';
+    else if (diff > 0) el.className = invertColor ? 'delta down' : 'delta up';
+    else el.className = invertColor ? 'delta up' : 'delta down';
+}
+
+/* ============================================================
+   ГРАФИКИ
+   ============================================================ */
+let chartMonthly = null;
+let chartByPerson = null;
+let chartYTD = null;
+
+const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: { display: false },
+        tooltip: {
+            backgroundColor: '#1e2228',
+            borderColor: '#3a4048',
+            borderWidth: 1,
+            titleColor: '#ffffff',
+            bodyColor: '#e8eaed',
+            padding: 10,
+            callbacks: {
+                label: ctx => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`
+            }
+        }
+    },
+    scales: {
+        x: {
+            ticks: { color: '#8b929c', font: { size: 12 } },
+            grid: { color: '#232830' }
+        },
+        y: {
+            beginAtZero: true,
+            ticks: {
+                color: '#8b929c',
+                font: { size: 12 },
+                callback: v => new Intl.NumberFormat('ru-RU').format(v)
+            },
+            grid: { color: '#232830' }
+        }
+    }
+};
+
+function renderCharts() {
+    const yearData = getYearTotals(currentYear);
+    const labels = MONTHS.map(m => m.slice(0, 3));
+
+    /* 1. По месяцам */
+    if (chartMonthly) chartMonthly.destroy();
+    chartMonthly = new Chart(document.getElementById('chartMonthly'), {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'Доходы',
+                    data: yearData.map(d => d.income),
+                    backgroundColor: 'rgba(76, 255, 154, 0.7)',
+                    borderColor: '#4cff9a',
+                    borderWidth: 1,
+                    borderRadius: 6
+                },
+                {
+                    label: 'Расходы',
+                    data: yearData.map(d => d.expense),
+                    backgroundColor: 'rgba(255, 107, 107, 0.7)',
+                    borderColor: '#ff6b6b',
+                    borderWidth: 1,
+                    borderRadius: 6
+                }
+            ]
+        },
+        options: chartOptions
+    });
+
+    /* 2. По людям */
+    const andreyData = [], leraData = [], sharedData = [];
+    for (let m = 0; m < 12; m++) {
+        andreyData.push(sumBy(getMonthItems(currentYear, m, 'andrey'), 'expense'));
+        leraData.push(  sumBy(getMonthItems(currentYear, m, 'lera'),   'expense'));
+        sharedData.push(sumBy(getMonthItems(currentYear, m, 'shared'), 'expense'));
+    }
+
+    if (chartByPerson) chartByPerson.destroy();
+    chartByPerson = new Chart(document.getElementById('chartByPerson'), {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'Андрей',
+                    data: andreyData,
+                    backgroundColor: 'rgba(76, 141, 255, 0.75)',
+                    borderColor: '#4c8dff',
+                    borderWidth: 1,
+                    borderRadius: 4
+                },
+                {
+                    label: 'Леруська',
+                    data: leraData,
+                    backgroundColor: 'rgba(255, 141, 220, 0.75)',
+                    borderColor: '#ff8ddc',
+                    borderWidth: 1,
+                    borderRadius: 4
+                },
+                {
+                    label: 'Совместно',
+                    data: sharedData,
+                    backgroundColor: 'rgba(255, 200, 76, 0.75)',
+                    borderColor: '#ffc84c',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }
+            ]
+        },
+        options: chartOptions
+    });
+
+    /* 3. Накопительно */
+    const ytdIncome = [], ytdExpense = [];
+    let accI = 0, accE = 0;
+    for (let m = 0; m < 12; m++) {
+        accI += yearData[m].income;
+        accE += yearData[m].expense;
+        ytdIncome.push(accI);
+        ytdExpense.push(accE);
+    }
+
+    if (chartYTD) chartYTD.destroy();
+    chartYTD = new Chart(document.getElementById('chartYTD'), {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'Доходы накопительно',
+                    data: ytdIncome,
+                    borderColor: '#4cff9a',
+                    backgroundColor: 'rgba(76, 255, 154, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointBackgroundColor: '#4cff9a',
+                    pointRadius: 4
+                },
+                {
+                    label: 'Расходы накопительно',
+                    data: ytdExpense,
+                    borderColor: '#ff6b6b',
+                    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointBackgroundColor: '#ff6b6b',
+                    pointRadius: 4
+                }
+            ]
+        },
+        options: chartOptions
+    });
+}
+
+/* ============================================================
+   ЭКСПОРТ
+   ============================================================ */
+function exportCSV() {
+    if (items.length === 0) { alert('Нет данных для экспорта'); return; }
+
+    const rows = [['Дата', 'Тип', 'Владелец', 'Категория', 'Описание', 'Сумма']];
+    items.forEach(it => {
+        rows.push([
+            it.date,
+            it.type === 'income' ? 'Доход' : 'Расход',
+            OWNER_LABEL[it.owner] || it.owner,
+            it.category,
+            it.desc,
+            it.amount
+        ]);
+    });
+
+    const csv = rows.map(r =>
+        r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';')
+    ).join('\n');
+
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `finance_${currentYear}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+/* ============================================================
+   ВСПОМОГАТЕЛЬНОЕ
+   ============================================================ */
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+}
+
+/* ============================================================
+   ВЫНОСИМ ФУНКЦИИ В ГЛОБАЛЬНУЮ ОБЛАСТЬ
+   (чтобы onclick="..." в HTML их видел)
+   ============================================================ */
+window.addItem       = addItem;
+window.removeItem    = removeItem;
+window.shiftMonth    = shiftMonth;
+window.exportCSV     = exportCSV;
+window.setOwnerFilter = setOwnerFilter;
+
+/* Фильтр по владельцу */
+document.getElementById('ownerFilter').addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    setOwnerFilter(btn.dataset.owner);
+});
+
+/* ============================================================
+   СТАРТ
+   ============================================================ */
+subscribe();
+</script>
+</body>
+</html>
