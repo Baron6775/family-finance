@@ -1482,7 +1482,7 @@ const ACCOUNTS_COLLECTION = "accounts";
 const ADMIN_PASSWORD = '3058';
 
 /* ============================================================
-   ДАННЫЕ КРЕДИТОВ
+   ДАННЫЕ КРЕДИТОВ (2 кредита — Сбер)
    ============================================================ */
 const LOANS = [
     {
@@ -1505,6 +1505,27 @@ const LOANS = [
             penalty: 81.97
         },
         totalRemaining: 312524.36
+    },
+    {
+        id: 'sber-2',
+        bank: 'Сбербанк',
+        name: 'Кредит №2',
+        initialAmount: 299999.00,
+        openDate: '2024-02-20',
+        closeDate: '2029-12-20',
+        paymentDay: 2,
+        rate: 33.40,
+        bodyDebt: 263175.97,
+        interestRemaining: 75764.77,
+        penalty: 2722.51,
+        monthlyPayment: 12785.90,
+        nextPaymentDate: '2026-10-02',
+        nextPaymentBreakdown: {
+            body: 3751.35,
+            interest: 9034.55,
+            penalty: 68.07
+        },
+        totalRemaining: 341663.25
     }
 ];
 
@@ -2340,7 +2361,6 @@ function updatePrepayPreview() {
     const target = document.getElementById('prepayTarget').value;
     const strategy = document.getElementById('prepayStrategy').value;
 
-    // Показываем/скрываем стратегию
     document.getElementById('prepayStrategyField').style.display =
         target === 'body' ? 'block' : 'none';
 
@@ -2365,7 +2385,6 @@ function updatePrepayPreview() {
                 newCloseDate = new Date();
                 newCloseDate.setMonth(newCloseDate.getMonth() + monthsLeft);
 
-                // Экономия: сравниваем с изначальным графиком
                 const monthsOld = monthsBetween(new Date(loan.nextPaymentDate), oldCloseDate);
                 const totalOld = oldMonthly * monthsOld - oldBody;
                 const totalNew = oldMonthly * monthsLeft - newBody;
@@ -2386,7 +2405,6 @@ function updatePrepayPreview() {
             }
         }
     } else {
-        // target === 'interest'
         interestCut = amount;
         if (loan.interestRemaining > 0) {
             const newInterestRemaining = Math.max(0, loan.interestRemaining - amount);
@@ -2455,7 +2473,6 @@ function confirmPrepay() {
         loan.interestRemaining = Math.max(0, loan.interestRemaining - d.savings);
     }
 
-    // Пересчёт следующей разбивки
     const monthlyRate = loan.rate / 100 / 12;
     const newInterest = loan.bodyDebt * monthlyRate;
     const newBody = Math.max(0, loan.monthlyPayment - newInterest);
