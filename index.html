@@ -1139,8 +1139,7 @@ const LOANS = [
         bodyDebt: 245948.60, interestRemaining: 63833.73, penalty: 2403.62,
         monthlyPayment: 11121.04, nextPaymentDate: '2026-10-02',
         nextPaymentBreakdown: { body: 3588.64, interest: 7532.40, penalty: 58.63 },
-        totalRemaining: 312185.95
-    },
+        totalRemaining: 312185.95    },
     {
         id: 'artem-5', bank: 'Артём', name: 'Кредит Артёма',
         initialAmount: 1486000.00, openDate: '2021-08-11', closeDate: '2029-08-13',
@@ -1252,6 +1251,18 @@ function isIncomeLike(t) { return t === 'income' || t === 'debt-in' || t === 'de
 /* ============================================================
    АУТЕНТИФИКАЦИЯ (Firebase Auth)
    ============================================================ */
+
+/* Определяем, кто вошёл: Андрей или Лера */
+function getCurrentUserRole() {
+    const user = firebase.auth().currentUser;
+    if (!user) return null;
+
+    const email = (user.email || '').toLowerCase();
+    if (email.startsWith('andrey')) return 'andrey';
+    if (email.startsWith('lera'))   return 'lera';
+    return null;
+}
+
 function checkLogin() {
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
@@ -1295,6 +1306,13 @@ function unlockApp() {
 
     document.getElementById('todayLine').textContent = formatTodayRu();
     document.getElementById('dateInput').value = todayISO();
+
+    // Автоподстановка имени в поле «Кто»
+    const role = getCurrentUserRole();
+    if (role) {
+        document.getElementById('owner').value = role;
+    }
+
     subscribe();
 }
 
@@ -1318,7 +1336,8 @@ function signOut() {
 /* Слушаем состояние авторизации */
 firebase.auth().onAuthStateChanged(user => {
     if (user) {
-        console.log('✅ Вошёл:', user.email);
+        const role = getCurrentUserRole();
+        console.log('✅ Вошёл:', user.email, '· роль:', role);
         unlockApp();
     } else {
         console.log('❌ Не авторизован');
@@ -1377,7 +1396,6 @@ function onEditTypeChange() {
    FIRESTORE
    ============================================================ */
 function subscribe() {
-    // Отписываемся от предыдущих подписок, если были
     if (unsubscribeTransactions) unsubscribeTransactions();
     if (unsubscribeAccounts) unsubscribeAccounts();
 
@@ -1476,6 +1494,9 @@ function addItem() {
         document.getElementById('amount').value = '';
         document.getElementById('counterparty').value = '';
         document.getElementById('dateInput').value = todayISO();
+        // Возвращаем автора в поле (на случай, если пользователь поменял)
+        const role = getCurrentUserRole();
+        if (role) document.getElementById('owner').value = role;
         setStatus('Добавлено', 'ok');
         setTimeout(() => setStatus(''), 1500);
     }).catch(e => {
@@ -1537,6 +1558,12 @@ function saveEdit() {
 }
 
 function removeItemWithPassword(id) {
+    // Двойная защита: если не Андрей — не удаляем
+    if (getCurrentUserRole() !== 'andrey') {
+        setStatus('Удалять может только Андрей', 'err');
+        return;
+    }
+
     const it = items.find(x => x.id === id);
     if (!it) return;
 
@@ -1551,6 +1578,11 @@ function removeItemWithPassword(id) {
 }
 
 function clearAllData() {
+    if (getCurrentUserRole() !== 'andrey') {
+        setStatus('Очищать может только Андрей', 'err');
+        return;
+    }
+
     const input = prompt('⚠️ Удалить ВСЕ транзакции?\n\nВведите пароль:');
     if (input !== ADMIN_PASSWORD) { setStatus('Неверный пароль', 'err'); return; }
     if (!confirm('Точно удалить всё?')) return;
@@ -2397,6 +2429,8 @@ function renderMonth() {
     if (monthItems.length === 0) {
         list.innerHTML = `<tr><td colspan="6" class="empty">Нет записей за этот месяц</td></tr>`;
     } else {
+        const isAndrey = getCurrentUserRole() === 'andrey';
+
         list.innerHTML = monthItems.map(it => {
             const isDebt = isDebtType(it.type);
             const isLoan = it.type === 'loan-payment';
@@ -2416,6 +2450,11 @@ function renderMonth() {
 
             const amountClass = isLoan ? 'loan' : it.type;
 
+            // Кнопка «Удалить» — только для Андрея
+            const deleteBtn = isAndrey
+                ? `<button class="del" onclick="removeItemWithPassword('${it.id}')">✕ Удалить</button>`
+                : '';
+
             return `
                 <tr>
                     <td data-label="Дата">${formatDateRu(it.date)}</td>
@@ -2430,7 +2469,7 @@ function renderMonth() {
                     </td>
                     <td class="actions">
                         <button class="edit" onclick="openEditModal('${it.id}')">✏️ Изменить</button>
-                        <button class="del" onclick="removeItemWithPassword('${it.id}')">✕ Удалить</button>
+                        ${deleteBtn}
                     </td>
                 </tr>
             `;
