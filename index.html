@@ -2861,7 +2861,9 @@ function enhanceInterface() {
         const sequence=++authSequence;
         if(!user) { lockApp(); return; }
         try {
-            const token=await user.getIdTokenResult();
+            // Custom claims may be assigned while the app is open. Refresh once here
+            // before creating Firestore listeners so their first request has familyRole.
+            const token=await user.getIdTokenResult(true);
             if(sequence!==authSequence) return;
             const claimedRole=['andrey','lera'].includes(token.claims.familyRole) ? token.claims.familyRole : null;
             // Compatibility for the two existing accounts while custom claims are being configured.
@@ -2878,3 +2880,4 @@ function enhanceInterface() {
 </script>
 </body>
 </html>
+
