@@ -1,35 +1,248 @@
-/* Administrative helper. Requires firebase-admin and Google application credentials.
-   Dry-run by default. Never put this script, seed or service credentials on hosting. */
-const fs=require('node:fs');
-const args=process.argv.slice(2);
-const apply=args.includes('--apply');
-const get=key=>args[args.indexOf(key)+1];
-const command=args[0];
-async function main(){
- if(!['role','seed'].includes(command)) throw Error('Usage: node setup-firebase.cjs role --uid UID --role andrey|lera [--apply]\nOR: node setup-firebase.cjs seed --date YYYY-MM-DD [--apply]');
- if(command==='role') {
-   const uid=get('--uid'),role=get('--role');
-   if(!args.includes('--uid') || !args.includes('--role') || !uid || !['andrey','lera'].includes(role)) throw Error('Supply an exact Firebase Authentication UID and role.');
-   if(!apply){console.log('DRY RUN: assign familyRole',role,'to UID',uid);return;}
-   const admin=require('firebase-admin');admin.initializeApp({credential:admin.credential.applicationDefault(),projectId:'family-finance-72604'});
-   const user=await admin.auth().getUser(uid);
-   await admin.auth().setCustomUserClaims(uid,{...user.customClaims,familyRole:role});
-   console.log('Role assigned. Sign out and sign in again.');
- } else {
-   if(!args.includes('--date'))throw Error('Provide the statement reconciliation date using --date.');
-   const date=require('./finance-core.js').date(get('--date'));
-   const loans=JSON.parse(fs.readFileSync(__dirname+'/PRIVATE-loan-seed.json','utf8'));
-   if(!apply){console.log('DRY RUN:',loans.length,'loans; reconciliation date',date,'; existing loan documents will not be overwritten.');return;}
-   const admin=require('firebase-admin');admin.initializeApp({credential:admin.credential.applicationDefault(),projectId:'family-finance-72604'});
-   const db=admin.firestore();
-   await db.runTransaction(async tx=>{
-     const refs=loans.map(l=>db.collection('loans').doc(l.id));
-     const existing=await Promise.all(refs.map(ref=>tx.get(ref)));
-     if(existing.some(d=>d.exists))throw Error('Migration aborted: at least one loan already exists. No changes applied.');
-     loans.forEach((loan,i)=>{const next={...loan,asOfDate:date,revision:1,breakdownVerified:false};tx.create(refs[i],next);tx.create(db.collection('loanReconciliations').doc(),{loanId:loan.id,date,before:{},after:next,createdAt:Date.now(),source:'reviewed-seed'});});
-   });
-   console.log('Loan balances imported atomically. Existing transactions unchanged.');
- }
+#!/usr/bin/env node
+'use strict';
+
+// Local-only Firebase administration helper. Never commit a service-account key,
+// backup, or PRIVATE-loan-seed.json.
+const fs = require('node:fs');
+const path = require('node:path');
+
+const PROJECT_ID = 'family-finance-72604';
+const EXPECTED_LOAN_IDS = ['sber-1', 'sber-2', 'sber-3', 'sber-4', 'artem-5', 'tetya-tanya'];
+const MONEY_FIELDS = ['initialAmount', 'bodyDebt', 'interestRemaining', 'penalty', 'monthlyPayment', 'totalRemaining'];
+
+function usage() {
+  return [
+    'Usage:',
+    '  node setup-firebase.cjs seed --replace --date 2026-09-22          # dry run',
+    '  node setup-firebase.cjs seed --replace --date 2026-09-22 --apply  # writes Firestore',
+    '  node setup-firebase.cjs role --uid <Firebase UID> --role andrey|lera --apply',
+    '',
+    'For operations that contact Firebase, set FIREBASE_SERVICE_ACCOUNT_PATH to a local Service Account JSON file.'
+  ].join('\n');
 }
-main().catch(e=>{console.error(e.message);process.exitCode=1;});
+
+function parseArgs(argv) {
+  const [command, ...rest] = argv;
+  const options = { command, apply: false, replace: false };
+  for (let index = 0; index < rest.length; index += 1) {
+    const token = rest[index];
+    if (token === '--apply') options.apply = true;
+    else if (token === '--replace') options.replace = true;
+    else if (token === '--date' || token === '--uid' || token === '--role') {
+      options[token.slice(2)] = rest[++index];
+    } else {
+      throw new Error(`Unknown argument: ${token}`);
+    }
+  }
+  return options;
+}
+
+function isIsoDate(value) {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
+}
+
+function asMoney(value, field, loanId) {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+    throw new Error(`Loan ${loanId}: ${field} must be a non-negative number.`);
+  }
+  return Math.round(value * 100) / 100;
+}
+
+function validateSeed(rawLoans) {
+  if (!Array.isArray(rawLoans) || rawLoans.length !== EXPECTED_LOAN_IDS.length) {
+    throw new Error(`Seed must contain exactly ${EXPECTED_LOAN_IDS.length} loans.`);
+  }
+
+  const seen = new Set();
+  const byId = new Map();
+  for (const raw of rawLoans) {
+    if (!raw || typeof raw !== 'object' || typeof raw.id !== 'string' || !raw.id.trim()) {
+      throw new Error('Every loan must have a non-empty ID.');
+    }
+    if (seen.has(raw.id)) throw new Error(`Duplicate loan ID: ${raw.id}`);
+    seen.add(raw.id);
+    if (typeof raw.name !== 'string' || !raw.name.trim() || typeof raw.bank !== 'string' || !raw.bank.trim()) {
+      throw new Error(`Loan ${raw.id}: name and bank are required.`);
+    }
+    if (typeof raw.rate !== 'number' || !Number.isFinite(raw.rate) || raw.rate < 0) {
+      throw new Error(`Loan ${raw.id}: rate must be a non-negative number.`);
+    }
+
+    const loan = { ...raw, id: raw.id, rate: Math.round(raw.rate * 10000) / 10000 };
+    for (const field of MONEY_FIELDS) loan[field] = asMoney(raw[field], field, raw.id);
+    if (loan.initialAmount <= 0) throw new Error(`Loan ${raw.id}: initialAmount must be greater than zero.`);
+    if (loan.bodyDebt > loan.initialAmount) throw new Error(`Loan ${raw.id}: bodyDebt cannot exceed initialAmount.`);
+
+    const calculatedTotal = Math.round((loan.bodyDebt + loan.interestRemaining + loan.penalty) * 100) / 100;
+    if (calculatedTotal !== loan.totalRemaining) {
+      throw new Error(`Loan ${raw.id}: totalRemaining must equal bodyDebt + interestRemaining + penalty.`);
+    }
+
+    if (raw.isPersonalDebt) {
+      if (raw.nextPaymentDate !== null || loan.monthlyPayment !== 0) {
+        throw new Error(`Loan ${raw.id}: personal loans must have no scheduled payment.`);
+      }
+    } else {
+      if (!isIsoDate(raw.nextPaymentDate)) throw new Error(`Loan ${raw.id}: nextPaymentDate is required.`);
+      if (!isIsoDate(raw.closeDate)) throw new Error(`Loan ${raw.id}: closeDate is required.`);
+      if (!raw.nextPaymentBreakdown || typeof raw.nextPaymentBreakdown !== 'object') {
+        throw new Error(`Loan ${raw.id}: nextPaymentBreakdown is required.`);
+      }
+      for (const field of ['body', 'interest', 'penalty']) asMoney(raw.nextPaymentBreakdown[field], `nextPaymentBreakdown.${field}`, raw.id);
+    }
+    byId.set(loan.id, loan);
+  }
+
+  for (const id of EXPECTED_LOAN_IDS) if (!byId.has(id)) throw new Error(`Seed is missing loan ${id}.`);
+  return EXPECTED_LOAN_IDS.map((id) => byId.get(id));
+}
+
+function loadSeed(seedPath) {
+  let source;
+  try {
+    source = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
+  } catch (error) {
+    throw new Error(`Cannot read local seed ${seedPath}: ${error.message}`);
+  }
+  return validateSeed(Array.isArray(source) ? source : source.loans);
+}
+
+function cloneForJson(value) {
+  if (value === null || typeof value !== 'object') return value;
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value.toDate === 'function') return value.toDate().toISOString();
+  if (Array.isArray(value)) return value.map(cloneForJson);
+  return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, cloneForJson(entry)]));
+}
+
+async function snapshotCollections(db) {
+  const [loans, reconciliations] = await Promise.all([
+    db.collection('loans').get(),
+    db.collection('loanReconciliations').get()
+  ]);
+  return {
+    loans: loans.docs.map((doc) => ({ id: doc.id, data: cloneForJson(doc.data()) })),
+    loanReconciliations: reconciliations.docs.map((doc) => ({ id: doc.id, data: cloneForJson(doc.data()) }))
+  };
+}
+
+function writeBackup(backupDir, snapshot, now = () => new Date()) {
+  fs.mkdirSync(backupDir, { recursive: true });
+  const stamp = now().toISOString().replace(/[:.]/g, '-');
+  const file = path.join(backupDir, `firestore-loans-before-replace-${stamp}.json`);
+  const backup = {
+    createdAt: now().toISOString(),
+    projectId: PROJECT_ID,
+    purpose: 'before-loan-seed-replacement',
+    ...snapshot
+  };
+  fs.writeFileSync(file, `${JSON.stringify(backup, null, 2)}\n`, { encoding: 'utf8', flag: 'wx' });
+  return file;
+}
+
+async function replaceLoans({ db, loans, date, backupPath, now = () => new Date() }) {
+  return db.runTransaction(async (transaction) => {
+    const existingLoans = await transaction.get(db.collection('loans'));
+    const references = loans.map((loan) => db.collection('loans').doc(loan.id));
+    const previous = await Promise.all(references.map((reference) => transaction.get(reference)));
+    const createdAt = now();
+    const results = [];
+
+    loans.forEach((loan, index) => {
+      const before = previous[index].exists ? cloneForJson(previous[index].data()) : null;
+      const revision = (Number.isInteger(before?.revision) && before.revision >= 0 ? before.revision : 0) + 1;
+      const after = { ...loan, asOfDate: date, revision, breakdownVerified: false };
+      transaction.set(references[index], after);
+      transaction.set(db.collection('loanReconciliations').doc(), {
+        loanId: loan.id,
+        date,
+        source: 'restored-from-original',
+        backupFile: path.basename(backupPath),
+        before,
+        after: cloneForJson(after),
+        createdAt
+      });
+      results.push({ id: loan.id, revision });
+    });
+    for (const document of existingLoans.docs) {
+      if (!EXPECTED_LOAN_IDS.includes(document.id)) transaction.delete(db.collection('loans').doc(document.id));
+    }
+    return results;
+  });
+}
+
+function createAdmin() {
+  const keyPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
+  if (!keyPath) throw new Error('Set FIREBASE_SERVICE_ACCOUNT_PATH to a local Service Account JSON file.');
+  const resolvedKeyPath = path.resolve(keyPath);
+  if (!fs.existsSync(resolvedKeyPath)) throw new Error(`Service Account file was not found: ${resolvedKeyPath}`);
+  let credentials;
+  try {
+    credentials = JSON.parse(fs.readFileSync(resolvedKeyPath, 'utf8'));
+  } catch (error) {
+    throw new Error(`Cannot read Service Account JSON: ${error.message}`);
+  }
+  if (!credentials.project_id || !credentials.client_email || !credentials.private_key) {
+    throw new Error('Service Account JSON is missing project_id, client_email, or private_key.');
+  }
+  let admin;
+  try {
+    admin = require('firebase-admin');
+  } catch {
+    throw new Error('firebase-admin is not installed. Run npm install in this folder first.');
+  }
+  if (!admin.apps.length) admin.initializeApp({ credential: admin.credential.cert(credentials), projectId: credentials.project_id });
+  return admin;
+}
+
+async function runSeed({ apply, replace, date, seedPath, backupDir, db, now }) {
+  if (!replace) throw new Error('For safety, seed requires --replace.');
+  if (!isIsoDate(date)) throw new Error('seed requires --date in YYYY-MM-DD format.');
+  const loans = loadSeed(seedPath);
+  if (!apply) return { mode: 'dry-run', date, loans: loans.map((loan) => ({ id: loan.id, name: loan.name, totalRemaining: loan.totalRemaining })) };
+  if (!db) throw new Error('Firestore database connection is required for --apply.');
+
+  const snapshot = await snapshotCollections(db);
+  const backupPath = writeBackup(backupDir, snapshot, now);
+  const written = await replaceLoans({ db, loans, date, backupPath, now });
+  return { mode: 'applied', date, backupPath, written };
+}
+
+async function runRole(options) {
+  if (!options.apply) throw new Error('role requires --apply.');
+  if (!options.uid || !['andrey', 'lera'].includes(options.role)) throw new Error('role requires --uid and --role andrey|lera.');
+  const admin = createAdmin();
+  await admin.auth().setCustomUserClaims(options.uid, { familyRole: options.role });
+  return { uid: options.uid, familyRole: options.role };
+}
+
+async function main() {
+  const options = parseArgs(process.argv.slice(2));
+  if (options.command === 'seed') {
+    const seedPath = path.join(__dirname, 'PRIVATE-loan-seed.json');
+    const result = await runSeed({
+      ...options,
+      seedPath,
+      backupDir: path.join(__dirname, 'backups'),
+      db: options.apply ? createAdmin().firestore() : null
+    });
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+  if (options.command === 'role') {
+    console.log(JSON.stringify(await runRole(options), null, 2));
+    return;
+  }
+  console.log(usage());
+  process.exitCode = 1;
+}
+
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(`Error: ${error.message}`);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = { EXPECTED_LOAN_IDS, validateSeed, loadSeed, snapshotCollections, writeBackup, replaceLoans, runSeed, parseArgs, isIsoDate };
 
