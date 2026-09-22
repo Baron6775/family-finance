@@ -1,0 +1,11 @@
+# Local work files and private financial data
+/work/
+/PRIVATE-loan-seed.json
+/family-finance.zip
+/preview.html
+
+# Local and editor files
+/.git/
+*.log
+.DS_Store
+Thumbs.db
