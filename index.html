@@ -397,7 +397,24 @@ button {min-height:44px;border-radius:10px;} button:focus-visible,a:focus-visibl
 .global-status.err {background:#45262b;border-color:#9c4a56;} .global-status.ok {background:#183829;border-color:#32684d;}
 .modal .field {margin-bottom:10px;} .modal {border-radius:18px;}
 .month-label {font-size:20px;} input[readonly] {color:#a4aeba;}
-@media(max-width:600px) {body{padding:16px 10px 80px;} .card{padding:16px;border-radius:14px;} h1{font-size:24px;} .accounts-grid,.people-grid{grid-template-columns:1fr;} .login-box{padding:26px;} .row{gap:12px;} .calc-strategy{grid-template-columns:1fr;} .global-status{bottom:10px;} }
+@media(max-width:600px) {
+    body{padding:16px 10px 80px;}
+    .card{padding:16px;border-radius:14px;}
+    h1{font-size:24px;}
+    .accounts-grid,.people-grid{grid-template-columns:1fr;}
+    .login-box{padding:26px;}
+    /* A single, predictable column prevents narrow controls from wrapping unevenly. */
+    .row{flex-direction:column;align-items:stretch;gap:14px;}
+    .row>.field,.row>.field.wide{flex:0 0 auto;width:100%;}
+    .row>button{width:100%;}
+    .account-card .change-row{flex-direction:column;align-items:stretch;}
+    .account-card .change-row button{width:100%;}
+    .section-nav{top:0;margin:0 -10px 16px;padding:10px;gap:6px;border-bottom:1px solid #2b3442;}
+    .section-nav a{flex:0 0 auto;font-size:13px;}
+    #appContent>.card{scroll-margin-top:76px;}
+    .calc-strategy{grid-template-columns:1fr;}
+    .global-status{bottom:10px;}
+}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto;}*,*::before,*::after{transition:none!important;animation:none!important;}}
 </style>
 </head>
