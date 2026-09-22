@@ -1,11 +1,17 @@
 # Local work files and private financial data
 /work/
-/PRIVATE-loan-seed.json
-/family-finance.zip
-/preview.html
+/outputs/PRIVATE-loan-seed.json
+/outputs/backups/
+/outputs/node_modules/
+/outputs/package-lock.json
+/outputs/pnpm-lock.yaml
+/outputs/*service-account*.json
+/outputs/family-finance.zip
+/outputs/preview.html
 
 # Local and editor files
 /.git/
 *.log
 .DS_Store
 Thumbs.db
+
