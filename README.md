@@ -31,11 +31,11 @@ npm install
 $env:FIREBASE_SERVICE_ACCOUNT_PATH = 'C:\Secure\family-finance-service-account.json'
 node setup-firebase.cjs seed --replace --date 2026-09-22
 node setup-firebase.cjs seed --replace --date 2026-09-22 --apply
-node setup-firebase.cjs role --uid YOUR_ANDREY_UID --role andrey --apply
-node setup-firebase.cjs role --uid YOUR_LERUSKA_UID --role lera --apply
+node setup-firebase.cjs role --email ANDREY_EMAIL --role andrey --apply
+node setup-firebase.cjs role --email LERUSKA_EMAIL --role lera --apply
 ```
 
-Первая команда `seed` — сухой запуск: показывает все шесть кредитов и ничего не меняет. Флаг `--apply` выполняет замену только после успешной проверки файла и резервного копирования. В одной транзакции Firestore создаются шесть кредитов и шесть записей `loanReconciliations` с причиной `restored-from-original`; у каждого кредита устанавливаются `asOfDate: 2026-09-22`, увеличенная `revision` и `breakdownVerified: false`. Старые операции не изменяются. После назначения claim выйдите из приложения и войдите снова.
+Первая команда `seed` — сухой запуск: показывает все шесть кредитов и ничего не меняет. Флаг `--apply` выполняет замену только после успешной проверки файла и резервного копирования. В одной транзакции Firestore создаются шесть кредитов и шесть записей `loanReconciliations` с причиной `restored-from-original`; у каждого кредита устанавливаются `asOfDate: 2026-09-22`, увеличенная `revision` и `breakdownVerified: false`. Старые операции не изменяются. Команда `role` принимает e-mail или UID, сохраняет существующие custom claims и добавляет `familyRole`. После назначения claim выйдите из приложения и войдите снова.
 
 ## Как работает учёт
 
