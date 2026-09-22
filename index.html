@@ -375,9 +375,33 @@
         .modal .actions { flex-direction: column; }
         .modal .actions button { width: 100%; }
     }
+
+/* Interface refinements */
+:root {color-scheme:dark;--accent:#78a6ff;}
+html {scroll-behavior:smooth;scroll-padding-top:80px;}
+body {max-width:1220px;padding:32px 24px 80px;background:radial-gradient(ellipse at 15% 0%,#1d2a40 0,transparent 42%),#101318;}
+.card {padding:24px;border-color:#2b3442;border-radius:18px;box-shadow:0 8px 28px #00000016;margin-bottom:22px;}
+h1 {font-size:30px;letter-spacing:-.8px;} h2 {font-size:19px;letter-spacing:-.3px;}
+button {min-height:44px;border-radius:10px;} button:focus-visible,a:focus-visible {outline:3px solid #8bb5ff;outline-offset:3px;}
+.section-hint,.muted {color:#a4aeba;font-size:13px;line-height:1.65;}
+.section-hint {margin:0 0 18px;}
+.section-nav {display:flex;gap:8px;overflow-x:auto;position:sticky;top:0;background:#101318f5;padding:12px 0;margin-bottom:18px;z-index:20;scrollbar-width:thin;}
+.section-nav a {color:#c2d4f4;background:#202a39;border:1px solid #354158;padding:8px 12px;border-radius:9px;text-decoration:none;white-space:nowrap;font-size:13px;}
+.section-nav a:hover {background:#2c4264;}
+.account-card {padding:22px;border-radius:14px;} .account-card .balance {font-size:32px;letter-spacing:-1px;}
+.account-total {background:#17283b;border-color:#2d4865;padding:18px;}
+.login-box {max-width:400px;padding:36px;border-radius:22px;box-shadow:0 24px 80px #0006;}
+.login-box h1 {font-size:24px;}
+.cat-bar-fill {display:block;} .chart-container {min-width:0;}
+.global-status {position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:11000;background:#223044;color:#eaf1ff;border:1px solid #425676;padding:12px 20px;border-radius:12px;box-shadow:0 8px 30px #0007;max-width:min(640px,calc(100vw - 24px));font-size:13px;pointer-events:none;}
+.global-status.err {background:#45262b;border-color:#9c4a56;} .global-status.ok {background:#183829;border-color:#32684d;}
+.modal .field {margin-bottom:10px;} .modal {border-radius:18px;}
+.month-label {font-size:20px;} input[readonly] {color:#a4aeba;}
+@media(max-width:600px) {body{padding:16px 10px 80px;} .card{padding:16px;border-radius:14px;} h1{font-size:24px;} .accounts-grid,.people-grid{grid-template-columns:1fr;} .login-box{padding:26px;} .row{gap:12px;} .calc-strategy{grid-template-columns:1fr;} .global-status{bottom:10px;} }
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto;}*,*::before,*::after{transition:none!important;animation:none!important;}}
 </style>
 </head>
-<body>
+<body><noscript>Для работы приложения включите JavaScript.</noscript><div id="globalStatus" class="global-status" role="status" aria-live="polite" hidden></div>
 
 <!-- ============================================================
      ЭКРАН ВХОДА (Firebase Auth)
@@ -387,13 +411,13 @@
         <h1>🔒 Семейные финансы</h1>
         <p class="login-sub">Вход по email и паролю</p>
 
-        <input id="loginEmail"
+        <input id="loginEmail" aria-label="email" autocomplete="username"
                type="email"
                placeholder="email"
                autocomplete="username"
                style="text-align:left;font-size:15px;letter-spacing:0;margin-bottom:8px">
 
-        <input id="loginPassword"
+        <input id="loginPassword" aria-label="пароль" autocomplete="current-password"
                type="password"
                placeholder="пароль"
                autocomplete="current-password"
@@ -422,9 +446,9 @@
             <h3>🔵 Андрей</h3>
             <div class="balance" id="accAndreyBalance">0 ₽</div>
             <div class="balance-sub" id="accAndreySub">начальный: 0 ₽</div>
-            <div class="change-row">
+            <div class="change-row hidden">
                 <div class="field">
-                    <label>Установить остаток</label>
+                    <label>Начальный остаток</label>
                     <input id="accAndreyInput" type="number" placeholder="0" step="0.01" inputmode="decimal">
                 </div>
                 <button class="sm" onclick="setAccountBalance('andrey')">Задать</button>
@@ -434,9 +458,9 @@
             <h3>🩷 Леруська</h3>
             <div class="balance" id="accLeraBalance">0 ₽</div>
             <div class="balance-sub" id="accLeraSub">начальный: 0 ₽</div>
-            <div class="change-row">
+            <div class="change-row hidden">
                 <div class="field">
-                    <label>Установить остаток</label>
+                    <label>Начальный остаток</label>
                     <input id="accLeraInput" type="number" placeholder="0" step="0.01" inputmode="decimal">
                 </div>
                 <button class="sm" onclick="setAccountBalance('lera')">Задать</button>
@@ -450,9 +474,10 @@
     </div>
 </div>
 
+<div class="card"><h2>Перевод между счетами</h2><p class="section-hint">Перемещение денег внутри семьи: общий остаток, доходы и расходы не меняются. Это запись в учёте, а не банковский перевод.</p><div class="row"><div class="field"><label for="transferFrom">Направление</label><select id="transferFrom"><option value="andrey">Андрей → Леруська</option><option value="lera">Леруська → Андрей</option></select></div><div class="field"><label for="transferDate">Дата перевода</label><input id="transferDate" type="date"></div><div class="field"><label for="transferAmount">Сумма перевода, ₽</label><input id="transferAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00"></div><button onclick="transferMoney()">Записать перевод</button></div></div>
 <!-- ===== Добавление записи ===== -->
 <div class="card">
-    <h2>Добавить запись</h2>
+    <h2>Новая операция</h2><p class="section-hint">Запишите поступление или расход — остатки обновятся автоматически.</p>
     <div class="row">
         <div class="field">
             <label>Дата</label>
@@ -514,12 +539,12 @@
             <button onclick="addItem()" style="width:100%">Добавить</button>
         </div>
     </div>
-    <div class="status" id="status"></div>
+    <div class="status" id="status" role="status" aria-live="polite"></div>
 </div>
 
 <!-- ===== Месяц ===== -->
 <div class="card">
-    <div class="month-nav">
+    <h2>Журнал операций</h2><p class="section-hint">Итоги под таблицей учитывают поиск и выбранного человека. Доходы и расходы здесь показывают движение денег, включая займы и возвраты.</p><div class="month-nav">
         <button class="ghost" onclick="shiftMonth(-1)">← Пред.</button>
         <div class="month-label" id="monthLabel">—</div>
         <button class="ghost" onclick="shiftMonth(1)">След. →</button>
@@ -531,6 +556,7 @@
         <button data-owner="lera">Леруська</button>
     </div>
 
+    <label for="searchTransactions">Найти запись</label><input id="searchTransactions" type="search" placeholder="Описание, категория или имя" style="margin-bottom:16px">
     <div class="table-wrap">
         <table>
             <thead>
@@ -589,7 +615,7 @@
 <div class="card">
     <h2>💳 Кредиты</h2>
 
-    <div class="loan-summary">
+    <p class="section-hint">Остатки — по последней сверке. Перед первым платежом подтвердите их по выписке. Прогнозы не изменяют фактические данные.</p><div class="loan-summary">
         <div class="item">
             <div class="label">Общий долг (тело)</div>
             <div class="value red" id="loanTotalBody">— ₽</div>
@@ -637,7 +663,7 @@
         </div>
     </div>
 
-    <div class="calc-strategy" id="calcResult">
+    <p class="section-hint">Приблизительный аннуитетный расчёт без комиссий, неустойки и ежедневного начисления. Точные условия и новый график — в банке.</p><div class="calc-strategy" id="calcResult">
         <div class="strategy-card">
             <h4>📅 Уменьшить срок</h4>
             <div class="line"><span class="k">Экономия на %</span><span class="v" id="calcSaveTerm">— ₽</span></div>
@@ -674,7 +700,7 @@
             <div class="delta" id="leraDelta">—</div>
         </div>
         <div class="person-card shared">
-            <h3>🟡 Совместно (Андрей + Леруська)</h3>
+            <h3>🟡 Всего семьи (Андрей + Леруська)</h3>
             <div class="line"><span class="k">Доходы</span><span class="v income" id="sharedIncome">0 ₽</span></div>
             <div class="line"><span class="k">Расходы</span><span class="v expense" id="sharedExpense">0 ₽</span></div>
             <div class="line"><span class="k">Баланс</span><span class="v" id="sharedBalance">0 ₽</span></div>
@@ -762,7 +788,7 @@
     <div class="legend">
         <span><span class="dot" style="background:#4c8dff"></span> Андрей</span>
         <span><span class="dot" style="background:#ff8ddc"></span> Леруська</span>
-        <span><span class="dot" style="background:#ffc84c"></span> Совместно</span>
+        <span><span class="dot" style="background:#ffc84c"></span> Всего семьи</span>
     </div>
 </div>
 
@@ -785,7 +811,7 @@
     </div>
 </div>
 
-<button class="danger full" style="margin-bottom:8px" onclick="clearAllData()">🗑 Очистить все данные</button>
+<button class="ghost full" onclick="exportBackup()">Резервная копия JSON</button>
 <button class="ghost full" style="margin-bottom:8px" onclick="signOut()">🚪 Выйти из аккаунта</button>
 
 </div><!-- /appContent -->
@@ -884,15 +910,15 @@
         <div class="breakdown">
             <div class="line body">
                 <span class="k">→ Основной долг</span>
-                <span class="v" id="loanPayBody">— ₽</span>
+                <input id="actual-body" type="number" min="0" step="0.01" inputmode="decimal" aria-label="Основной долг" style="max-width:180px">
             </div>
             <div class="line interest">
                 <span class="k">→ Проценты</span>
-                <span class="v" id="loanPayInterest">— ₽</span>
+                <input id="actual-interest" type="number" min="0" step="0.01" inputmode="decimal" aria-label="Проценты" style="max-width:180px">
             </div>
             <div class="line penalty">
                 <span class="k">→ Неустойка</span>
-                <span class="v" id="loanPayPenalty">— ₽</span>
+                <input id="actual-penalty" type="number" min="0" step="0.01" inputmode="decimal" aria-label="Неустойка" style="max-width:180px">
             </div>
             <div class="line total">
                 <span class="k">Итого к оплате</span>
@@ -903,7 +929,7 @@
         <div class="row">
             <div class="field">
                 <label>Сумма фактического платежа, ₽</label>
-                <input id="loanPayAmount" type="number" step="0.01" inputmode="decimal">
+                <input id="loanPayAmount" readonly type="number" step="0.01" inputmode="decimal">
             </div>
         </div>
 
@@ -921,7 +947,7 @@
 <!-- ===== МОДАЛКА ДОСРОЧКИ ===== -->
 <div class="modal-bg" id="prepayModal">
     <div class="modal">
-        <h3>⚡ Досрочный платёж</h3>
+        <h3>⚡ Досрочный платёж</h3><p class="section-hint">Ниже показан прогноз. Сохранение уменьшит только фактически погашенную сумму. Новый платёж и срок внесите через сверку после подтверждения банка.</p>
         <div id="prepayTitle" style="color:#8b929c;font-size:13px;margin-bottom:12px"></div>
 
         <div class="row">
@@ -956,7 +982,7 @@
             <div class="field" id="prepayStrategyField">
                 <label>Стратегия</label>
                 <select id="prepayStrategy">
-                    <option value="reduce_term">Уменьшить срок (выгоднее)</option>
+                    <option value="reduce_term">Уменьшить срок</option>
                     <option value="reduce_payment">Уменьшить платёж</option>
                 </select>
             </div>
@@ -1003,7 +1029,7 @@
 <!-- ===== МОДАЛКА ГРАФИКА ===== -->
 <div class="modal-bg" id="loanScheduleModal">
     <div class="modal wide">
-        <h3>📅 График платежей</h3>
+        <h3>📅 Прогноз платежей</h3><p class="section-hint">Модель ежемесячного начисления без неустойки. Фактический график уточняйте в банке.</p>
         <div id="loanScheduleTitle" style="color:#8b929c;font-size:13px;margin-bottom:12px"></div>
         <div class="schedule-wrap">
             <table class="schedule-table">
@@ -1076,11 +1102,102 @@
     </div>
 </div>
 
+<div class="modal-bg" id="reconcileModal"><div class="modal"><h3 id="reconcileTitle">Сверка кредита</h3><p class="section-hint">Сверка меняет остатки, но не создаёт расход. Все изменения сохраняются в журнале сверок. Проценты до конца — оценка из выписки.</p><div class="row"><div class="field"><label for="recDate">По состоянию на</label><input id="recDate" type="date"></div></div><div class="field"><label for="rec-initialAmount">Первоначальная сумма, ₽</label><input id="rec-initialAmount" type="number" min="0" step="0.01"></div><div class="field"><label for="rec-bodyDebt">Основной долг, ₽</label><input id="rec-bodyDebt" type="number" min="0" step="0.01"></div><div class="field"><label for="rec-interestRemaining">Проценты до конца, ₽</label><input id="rec-interestRemaining" type="number" min="0" step="0.01"></div><div class="field"><label for="rec-penalty">Неустойка, ₽</label><input id="rec-penalty" type="number" min="0" step="0.01"></div><div class="field"><label for="rec-monthlyPayment">Ежемесячный платёж, ₽</label><input id="rec-monthlyPayment" type="number" min="0" step="0.01"></div><div class="row"><div class="field"><label for="recNext">Следующий платёж</label><input id="recNext" type="date"></div><div class="field"><label for="recClose">Дата закрытия</label><input id="recClose" type="date"></div></div><div class="actions"><button class="ghost" onclick="closeReconcile()">Отмена</button><button onclick="confirmReconcile()">Подтвердить остатки</button></div></div></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
+<script>
+/* Pure calculations shared by the application and regression tests. */
+(function(root) {
+  'use strict';
+  const money = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+  function amount(value, allowZero = false) {
+    const n = Number(value);
+    if (String(value).trim() === '' || !Number.isFinite(n) || n < 0 || (!allowZero && n === 0) || n > 1e12 || Math.abs(n * 100 - Math.round(n * 100)) > 0.001) throw new Error('Введите корректную сумму с точностью до копеек.');
+    return money(n);
+  }
+  function date(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error('Укажите корректную дату.');
+    const d = new Date(value + 'T12:00:00Z');
+    if (!Number.isFinite(d.getTime()) || d.toISOString().slice(0,10) !== value) throw new Error('Укажите корректную дату.');
+    return value;
+  }
+  function addMonths(iso, count) {
+    date(iso);
+    const [y,m,d] = iso.split('-').map(Number);
+    const end = new Date(Date.UTC(y, m + count, 0)).getUTCDate();
+    return new Date(Date.UTC(y, m - 1 + count, Math.min(d,end),12)).toISOString().slice(0,10);
+  }
+  function schedule(loan) {
+    let balance = amount(loan.bodyDebt, true);
+    const payment = amount(loan.monthlyPayment, true);
+    const rate = Number(loan.rate) / 1200;
+    if (!Number.isFinite(rate) || rate < 0) throw new Error('Некорректная ставка.');
+    const rows = [];
+    if (!balance) return rows;
+    date(loan.nextPaymentDate);
+    for (let n=1; balance > 0 && n <= 1200; n++) {
+      const interest = money(balance * rate);
+      if (payment <= interest) throw new Error('Платёж не покрывает проценты. График не может быть рассчитан.');
+      const body = Math.min(balance, money(payment - interest));
+      balance = money(balance - body);
+      rows.push({n, date:addMonths(loan.nextPaymentDate,n-1), payment:money(body+interest), body, interest, penalty:0, remain:balance});
+    }
+    if (balance > 0) throw new Error('Расчёт превышает 100 лет. Проверьте параметры.');
+    return rows;
+  }
+  function prepay(loan, value, strategy) {
+    const paid = amount(value,true);
+    if (paid > loan.bodyDebt) throw new Error('Сумма превышает остаток основного долга.');
+    const before = schedule(loan);
+    const newBody = money(loan.bodyDebt - paid);
+    let newMonthly = loan.monthlyPayment;
+    if (!newBody) newMonthly = 0;
+    else if (paid && strategy === 'reduce_payment') {
+      const n = before.length, r = loan.rate / 1200;
+      newMonthly = Math.ceil((r ? newBody*r/(1-Math.pow(1+r,-n)) : newBody/n)*100)/100;
+    }
+    const after = schedule({...loan,bodyDebt:newBody,monthlyPayment:newMonthly});
+    return {amount:paid, newBody, newMonthly, months:after.length,
+      newCloseDate:after.length ? after.at(-1).date : null,
+      savings:money(before.reduce((s,r)=>s+r.interest,0)-after.reduce((s,r)=>s+r.interest,0)),
+      interestRemaining:money(after.reduce((s,r)=>s+r.interest,0))};
+  }
+  function payment(loan, value, mode) {
+    const paid = amount(value);
+    const next = JSON.parse(JSON.stringify(loan));
+    let body=0, interest=0, penalty=0;
+    if (mode === 'personal' || mode === 'body') {
+      if (paid > loan.bodyDebt) throw new Error('Сумма превышает остаток долга.');
+      body = paid;
+    } else if (mode === 'interest') {
+      if (paid > loan.interestRemaining) throw new Error('Сумма превышает остаток процентов.');
+      interest = paid;
+    } else {
+      ({body,interest,penalty} = loan.nextPaymentBreakdown);
+      body=amount(body,true); interest=amount(interest,true); penalty=amount(penalty,true);
+      if (money(body+interest+penalty) !== paid) throw new Error('Сумма должна совпадать с разбивкой платежа. Для другого платежа сначала уточните разбивку по выписке.');
+      if (body > loan.bodyDebt || interest > loan.interestRemaining || penalty > loan.penalty) throw new Error('Разбивка платежа превышает остатки. Сверьте кредит с выпиской.');
+      // A partial/early payment does not prove the next contractual due date.
+      // Update dates only through a statement reconciliation.
+    }
+    next.bodyDebt=money(loan.bodyDebt-body);
+    next.interestRemaining=money(loan.interestRemaining-interest);
+    next.penalty=money(loan.penalty-penalty);
+    next.totalRemaining=money(next.bodyDebt+next.interestRemaining+next.penalty);
+    if (!next.bodyDebt && !next.interestRemaining && !next.penalty) next.monthlyPayment=0;
+    // The next actual bank breakdown must come from a statement, not a forecast.
+    next.breakdownVerified = mode === 'personal';
+    return {next, breakdown:{body,interest,penalty}};
+  }
+  const api={money,amount,date,addMonths,schedule,prepay,payment};
+  if (typeof module !== 'undefined' && module.exports) module.exports=api;
+  else root.FinanceCore=api;
+})(typeof window !== 'undefined' ? window : this);
+
+</script>
 <script>
 /* ============================================================
    FIREBASE
@@ -1095,78 +1212,147 @@ const firebaseConfig = {
     measurementId: "G-1DDWSQ0M56"
 };
 
+if (typeof firebase === 'undefined') {
+ document.getElementById('loginError').textContent='Не удалось загрузить Firebase. Проверьте подключение и обновите страницу.';
+ document.querySelector('#loginScreen button').disabled=true;
+} else {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const COLLECTION = "transactions";
 const ACCOUNTS_COLLECTION = "accounts";
-const ADMIN_PASSWORD = '3058';
+
 
 /* ============================================================
    КРЕДИТЫ (5 банковских + 1 личный долг)
    ============================================================ */
 const LOANS = [
-    {
-        id: 'sber-1', bank: 'Сбербанк', name: 'Кредит №1',
-        initialAmount: 359281.44, openDate: '2023-06-26', closeDate: '2029-02-26',
-        paymentDay: 2, rate: 22.90,
-        bodyDebt: 259101.59, interestRemaining: 50963.74, penalty: 2459.03,
-        monthlyPayment: 13036.23, nextPaymentDate: '2026-10-02',
-        nextPaymentBreakdown: { body: 6536.50, interest: 6499.73, penalty: 81.97 },
-        totalRemaining: 312524.36
+  {
+    "id": "sber-1",
+    "bank": "Сбербанк",
+    "name": "Кредит №1",
+    "initialAmount": 0,
+    "openDate": null,
+    "closeDate": null,
+    "paymentDay": 2,
+    "rate": 22.9,
+    "bodyDebt": 0,
+    "interestRemaining": 0,
+    "penalty": 0,
+    "monthlyPayment": 0,
+    "nextPaymentDate": null,
+    "nextPaymentBreakdown": {
+      "body": 0,
+      "interest": 0,
+      "penalty": 0
     },
-    {
-        id: 'sber-2', bank: 'Сбербанк', name: 'Кредит №2',
-        initialAmount: 299999.00, openDate: '2024-02-20', closeDate: '2029-12-20',
-        paymentDay: 2, rate: 33.40,
-        bodyDebt: 263175.97, interestRemaining: 75764.77, penalty: 2722.51,
-        monthlyPayment: 12785.90, nextPaymentDate: '2026-10-02',
-        nextPaymentBreakdown: { body: 3751.35, interest: 9034.55, penalty: 68.07 },
-        totalRemaining: 341663.25
+    "totalRemaining": 0
+  },
+  {
+    "id": "sber-2",
+    "bank": "Сбербанк",
+    "name": "Кредит №2",
+    "initialAmount": 0,
+    "openDate": null,
+    "closeDate": null,
+    "paymentDay": 2,
+    "rate": 33.4,
+    "bodyDebt": 0,
+    "interestRemaining": 0,
+    "penalty": 0,
+    "monthlyPayment": 0,
+    "nextPaymentDate": null,
+    "nextPaymentBreakdown": {
+      "body": 0,
+      "interest": 0,
+      "penalty": 0
     },
-    {
-        id: 'sber-3', bank: 'Сбербанк', name: 'Кредит №3',
-        initialAmount: 299999.00, openDate: '2023-05-27', closeDate: '2029-04-27',
-        paymentDay: 2, rate: 27.90,
-        bodyDebt: 232733.26, interestRemaining: 55562.50, penalty: 2325.62,
-        monthlyPayment: 12038.51, nextPaymentDate: '2026-10-02',
-        nextPaymentBreakdown: { body: 5043.09, interest: 6995.42, penalty: 72.67 },
-        totalRemaining: 290621.38
+    "totalRemaining": 0
+  },
+  {
+    "id": "sber-3",
+    "bank": "Сбербанк",
+    "name": "Кредит №3",
+    "initialAmount": 0,
+    "openDate": null,
+    "closeDate": null,
+    "paymentDay": 2,
+    "rate": 27.9,
+    "bodyDebt": 0,
+    "interestRemaining": 0,
+    "penalty": 0,
+    "monthlyPayment": 0,
+    "nextPaymentDate": null,
+    "nextPaymentBreakdown": {
+      "body": 0,
+      "interest": 0,
+      "penalty": 0
     },
-    {
-        id: 'sber-4', bank: 'Сбербанк', name: 'Кредит №4',
-        initialAmount: 281000.00, openDate: '2024-03-19', closeDate: '2030-01-19',
-        paymentDay: 2, rate: 29.90,
-        bodyDebt: 245948.60, interestRemaining: 63833.73, penalty: 2403.62,
-        monthlyPayment: 11121.04, nextPaymentDate: '2026-10-02',
-        nextPaymentBreakdown: { body: 3588.64, interest: 7532.40, penalty: 58.63 },
-        totalRemaining: 312185.95    },
-    {
-        id: 'artem-5', bank: 'Артём', name: 'Кредит Артёма',
-        initialAmount: 1486000.00, openDate: '2021-08-11', closeDate: '2029-08-13',
-        paymentDay: 23, rate: 6.00,
-        bodyDebt: 715435.10, interestRemaining: 115136.34, penalty: 0,
-        monthlyPayment: 23731.64, nextPaymentDate: '2026-10-23',
-        nextPaymentBreakdown: { body: 18804.49, interest: 4927.15, penalty: 0 },
-        totalRemaining: 830571.44
+    "totalRemaining": 0
+  },
+  {
+    "id": "sber-4",
+    "bank": "Сбербанк",
+    "name": "Кредит №4",
+    "initialAmount": 0,
+    "openDate": null,
+    "closeDate": null,
+    "paymentDay": 2,
+    "rate": 29.9,
+    "bodyDebt": 0,
+    "interestRemaining": 0,
+    "penalty": 0,
+    "monthlyPayment": 0,
+    "nextPaymentDate": null,
+    "nextPaymentBreakdown": {
+      "body": 0,
+      "interest": 0,
+      "penalty": 0
     },
-    {
-        id: 'tetya-tanya',
-        bank: 'Личный долг',
-        name: 'Долг Тёть Тане',
-        initialAmount: 1800000.00,
-        openDate: '2026-01-01',
-        closeDate: null,
-        paymentDay: null,
-        rate: 0,
-        isPersonalDebt: true,
-        bodyDebt: 1800000.00,
-        interestRemaining: 0,
-        penalty: 0,
-        monthlyPayment: 0,
-        nextPaymentDate: null,
-        nextPaymentBreakdown: { body: 0, interest: 0, penalty: 0 },
-        totalRemaining: 1800000.00
-    }
+    "totalRemaining": 0
+  },
+  {
+    "id": "artem-5",
+    "bank": "Артём",
+    "name": "Кредит Артёма",
+    "initialAmount": 0,
+    "openDate": null,
+    "closeDate": null,
+    "paymentDay": 23,
+    "rate": 6,
+    "bodyDebt": 0,
+    "interestRemaining": 0,
+    "penalty": 0,
+    "monthlyPayment": 0,
+    "nextPaymentDate": null,
+    "nextPaymentBreakdown": {
+      "body": 0,
+      "interest": 0,
+      "penalty": 0
+    },
+    "totalRemaining": 0
+  },
+  {
+    "id": "tetya-tanya",
+    "bank": "Личный долг",
+    "name": "Долг Тёть Тане",
+    "initialAmount": 0,
+    "openDate": null,
+    "closeDate": null,
+    "paymentDay": null,
+    "rate": 0,
+    "isPersonalDebt": true,
+    "bodyDebt": 0,
+    "interestRemaining": 0,
+    "penalty": 0,
+    "monthlyPayment": 0,
+    "nextPaymentDate": null,
+    "nextPaymentBreakdown": {
+      "body": 0,
+      "interest": 0,
+      "penalty": 0
+    },
+    "totalRemaining": 0
+  }
 ];
 
 /* ============================================================
@@ -1196,9 +1382,10 @@ let unsubscribeAccounts = null;
 const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь',
                 'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 
-const OWNER_LABEL = { andrey: 'Андрей', lera: 'Леруська', shared: 'Совместно' };
+const OWNER_LABEL = { andrey: 'Андрей', lera: 'Леруська', shared: 'Всего семьи' };
 
 const TYPE_LABEL = {
+    transfer: 'Перевод',
     income: 'Доход', expense: 'Расход',
     'debt-in': 'Взял в долг', 'debt-out': 'Вернул долг',
     'debt-give': 'Дал в долг', 'debt-get': 'Получил долг',
@@ -1206,6 +1393,7 @@ const TYPE_LABEL = {
 };
 
 const TYPE_BADGE = {
+    transfer: 'shared',
     income: 'income', expense: 'expense',
     'debt-in': 'debt-in', 'debt-out': 'debt-out',
     'debt-give': 'debt-out', 'debt-get': 'debt-in',
@@ -1238,11 +1426,7 @@ function formatTodayRu() {
     return `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
 }
 
-function setStatus(text, cls = '') {
-    const el = document.getElementById('status');
-    el.textContent = text;
-    el.className = 'status ' + cls;
-}
+
 
 function isDebtType(t) { return t === 'debt-in' || t === 'debt-out' || t === 'debt-give' || t === 'debt-get'; }
 function isExpenseLike(t) { return t === 'expense' || t === 'debt-out' || t === 'debt-give' || t === 'loan-payment'; }
@@ -1253,15 +1437,7 @@ function isIncomeLike(t) { return t === 'income' || t === 'debt-in' || t === 'de
    ============================================================ */
 
 /* Определяем, кто вошёл: Андрей или Лера */
-function getCurrentUserRole() {
-    const user = firebase.auth().currentUser;
-    if (!user) return null;
 
-    const email = (user.email || '').toLowerCase();
-    if (email.startsWith('andrey')) return 'andrey';
-    if (email.startsWith('lera'))   return 'lera';
-    return null;
-}
 
 function checkLogin() {
     const email = document.getElementById('loginEmail').value.trim();
@@ -1301,6 +1477,7 @@ function checkLogin() {
 }
 
 function unlockApp() {
+    updateAccountPermissions();
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('appContent').style.display = 'block';
 
@@ -1316,17 +1493,7 @@ function unlockApp() {
     subscribe();
 }
 
-function lockApp() {
-    document.getElementById('loginScreen').classList.remove('hidden');
-    document.getElementById('appContent').style.display = 'none';
-    document.getElementById('loginEmail').value = '';
-    document.getElementById('loginPassword').value = '';
-    document.getElementById('loginError').textContent = '';
 
-    // Отписываемся от Firestore
-    if (unsubscribeTransactions) { unsubscribeTransactions(); unsubscribeTransactions = null; }
-    if (unsubscribeAccounts) { unsubscribeAccounts(); unsubscribeAccounts = null; }
-}
 
 function signOut() {
     if (!confirm('Выйти из аккаунта?')) return;
@@ -1334,16 +1501,7 @@ function signOut() {
 }
 
 /* Слушаем состояние авторизации */
-firebase.auth().onAuthStateChanged(user => {
-    if (user) {
-        const role = getCurrentUserRole();
-        console.log('✅ Вошёл:', user.email, '· роль:', role);
-        unlockApp();
-    } else {
-        console.log('❌ Не авторизован');
-        lockApp();
-    }
-});
+
 
 /* ============================================================
    ФОРМА
@@ -1395,62 +1553,17 @@ function onEditTypeChange() {
 /* ============================================================
    FIRESTORE
    ============================================================ */
-function subscribe() {
-    if (unsubscribeTransactions) unsubscribeTransactions();
-    if (unsubscribeAccounts) unsubscribeAccounts();
 
-    unsubscribeTransactions = db.collection(COLLECTION).orderBy('date', 'asc').onSnapshot(snap => {
-        items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        setStatus('Синхронизировано', 'ok');
-        renderAll();
-    }, err => {
-        console.error(err);
-        setStatus('Ошибка Firebase: ' + err.message, 'err');
-    });
-
-    unsubscribeAccounts = db.collection(ACCOUNTS_COLLECTION).doc('main').onSnapshot(doc => {
-        if (doc.exists) {
-            const data = doc.data();
-            accounts = { andrey: Number(data.andrey || 0), lera: Number(data.lera || 0) };
-        } else {
-            accounts = { andrey: 0, lera: 0 };
-        }
-        renderAccounts();
-    }, err => console.error('accounts error:', err));
-}
 
 /* ============================================================
    СЧЕТА
    ============================================================ */
-function setAccountBalance(owner) {
-    const input = document.getElementById(owner === 'andrey' ? 'accAndreyInput' : 'accLeraInput');
-    const value = Number(input.value);
-    if (isNaN(value)) { setStatus('Введите число', 'err'); return; }
 
-    db.collection(ACCOUNTS_COLLECTION).doc('main').set(
-        { [owner]: value }, { merge: true }
-    ).then(() => {
-        input.value = '';
-        setStatus('Остаток обновлён', 'ok');
-        setTimeout(() => setStatus(''), 1500);
-    }).catch(e => {
-        console.error(e);
-        setStatus('Ошибка: ' + e.message, 'err');
-    });
-}
 
-function calcCurrentAccount(owner) {
-    let balance = accounts[owner] || 0;
-    items.forEach(it => {
-        if (it.owner !== owner) return;
-        const amt = Number(it.amount || 0);
-        if (isIncomeLike(it.type)) balance += amt;
-        else if (isExpenseLike(it.type)) balance -= amt;
-    });
-    return balance;
-}
+
 
 function renderAccounts() {
+    updateAccountPermissions();
     const aC = calcCurrentAccount('andrey');
     const lC = calcCurrentAccount('lera');
     const total = aC + lC;
@@ -1472,42 +1585,12 @@ function renderAccounts() {
 /* ============================================================
    ДОБАВЛЕНИЕ / РЕДАКТИРОВАНИЕ / УДАЛЕНИЕ
    ============================================================ */
-function addItem() {
-    const date = document.getElementById('dateInput').value || todayISO();
-    const desc = document.getElementById('desc').value.trim();
-    const amount = Number(document.getElementById('amount').value);
-    const type = document.getElementById('type').value;
-    const category = document.getElementById('category').value;
-    const owner = document.getElementById('owner').value;
-    const counterparty = document.getElementById('counterparty').value.trim();
 
-    if (!desc) { setStatus('Введите описание', 'err'); return; }
-    if (!amount || amount <= 0) { setStatus('Введите сумму больше нуля', 'err'); return; }
-    if (isDebtType(type) && !counterparty) { setStatus('Укажите контрагента', 'err'); return; }
-
-    const data = { date, desc, category, amount, type, owner, createdAt: Date.now() };
-    if (isDebtType(type)) data.counterparty = counterparty;
-
-    setStatus('Сохранение…');
-    db.collection(COLLECTION).add(data).then(() => {
-        document.getElementById('desc').value = '';
-        document.getElementById('amount').value = '';
-        document.getElementById('counterparty').value = '';
-        document.getElementById('dateInput').value = todayISO();
-        // Возвращаем автора в поле (на случай, если пользователь поменял)
-        const role = getCurrentUserRole();
-        if (role) document.getElementById('owner').value = role;
-        setStatus('Добавлено', 'ok');
-        setTimeout(() => setStatus(''), 1500);
-    }).catch(e => {
-        console.error(e);
-        setStatus('Ошибка: ' + e.message, 'err');
-    });
-}
 
 function openEditModal(id) {
     const it = items.find(x => x.id === id);
     if (!it) return;
+    if(['loan-payment','transfer'].includes(it.type)) {setStatus('Перевод можно удалить и создать заново; кредитный платёж требует сверки.', 'err');return;}
     editingId = id;
 
     document.getElementById('eDate').value = it.date || todayISO();
@@ -1529,74 +1612,11 @@ function closeEditModal() {
     document.body.style.overflow = '';
 }
 
-function saveEdit() {
-    if (!editingId) return;
-    const date = document.getElementById('eDate').value || todayISO();
-    const desc = document.getElementById('eDesc').value.trim();
-    const amount = Number(document.getElementById('eAmount').value);
-    const type = document.getElementById('eType').value;
-    const category = document.getElementById('eCategory').value;
-    const owner = document.getElementById('eOwner').value;
-    const counterparty = document.getElementById('eCounterparty').value.trim();
 
-    if (!desc || !amount || amount <= 0) { setStatus('Заполните поля', 'err'); return; }
-    if (isDebtType(type) && !counterparty) { setStatus('Укажите контрагента', 'err'); return; }
 
-    const data = { date, desc, category, amount, type, owner };
-    if (isDebtType(type)) data.counterparty = counterparty;
-    else data.counterparty = firebase.firestore.FieldValue.delete();
 
-    setStatus('Сохранение…');
-    db.collection(COLLECTION).doc(editingId).update(data).then(() => {
-        closeEditModal();
-        setStatus('Сохранено', 'ok');
-        setTimeout(() => setStatus(''), 1500);
-    }).catch(e => {
-        console.error(e);
-        setStatus('Ошибка: ' + e.message, 'err');
-    });
-}
 
-function removeItemWithPassword(id) {
-    // Двойная защита: если не Андрей — не удаляем
-    if (getCurrentUserRole() !== 'andrey') {
-        setStatus('Удалять может только Андрей', 'err');
-        return;
-    }
 
-    const it = items.find(x => x.id === id);
-    if (!it) return;
-
-    const input = prompt(`⚠️ Удаление:\n\n"${it.desc}" — ${fmt(it.amount)}\n\nВведите пароль:`);
-    if (input === null) return;
-    if (input !== ADMIN_PASSWORD) { setStatus('Неверный пароль', 'err'); return; }
-
-    db.collection(COLLECTION).doc(id).delete().then(() => {
-        setStatus('Удалено', 'ok');
-        setTimeout(() => setStatus(''), 1500);
-    }).catch(e => setStatus('Ошибка: ' + e.message, 'err'));
-}
-
-function clearAllData() {
-    if (getCurrentUserRole() !== 'andrey') {
-        setStatus('Очищать может только Андрей', 'err');
-        return;
-    }
-
-    const input = prompt('⚠️ Удалить ВСЕ транзакции?\n\nВведите пароль:');
-    if (input !== ADMIN_PASSWORD) { setStatus('Неверный пароль', 'err'); return; }
-    if (!confirm('Точно удалить всё?')) return;
-
-    setStatus('Удаление…');
-    db.collection(COLLECTION).get().then(snapshot => {
-        const batch = db.batch();
-        snapshot.docs.forEach(doc => batch.delete(doc.ref));
-        return batch.commit();
-    }).then(() => {
-        setStatus('Все транзакции удалены', 'ok');
-        setTimeout(() => setStatus(''), 2000);
-    }).catch(e => setStatus('Ошибка: ' + e.message, 'err'));
-}
 
 /* ============================================================
    НАВИГАЦИЯ
@@ -1733,41 +1753,7 @@ function renderCategories() {
 /* ============================================================
    КРЕДИТЫ — СВОДКА
    ============================================================ */
-function renderLoanSummary() {
-    let totalBody = 0, totalInterest = 0, totalPenalty = 0, monthlySum = 0;
-    let nextPayment = null, nextPaymentDate = null, closeDate = null;
 
-    LOANS.forEach(loan => {
-        totalBody += loan.bodyDebt;
-        totalInterest += loan.interestRemaining;
-        totalPenalty += loan.penalty;
-
-        if (loan.isPersonalDebt) return;
-
-        monthlySum += loan.monthlyPayment;
-
-        const npDate = new Date(loan.nextPaymentDate);
-        if (!nextPaymentDate || npDate < nextPaymentDate) {
-            nextPaymentDate = npDate;
-            nextPayment = loan.monthlyPayment;
-        }
-
-        const cd = new Date(loan.closeDate);
-        if (!closeDate || cd > closeDate) closeDate = cd;
-    });
-
-    document.getElementById('loanTotalBody').textContent = fmt(totalBody);
-    document.getElementById('loanTotalInterest').textContent = fmt(totalInterest);
-    document.getElementById('loanTotalPenalty').textContent = fmt(totalPenalty);
-    document.getElementById('loanMonthlySum').textContent = fmt(monthlySum);
-
-    if (nextPayment !== null) {
-        document.getElementById('loanNextPayment').textContent = fmt(nextPayment);
-        document.getElementById('loanNextDate').textContent = formatDateRu(nextPaymentDate.toISOString().slice(0, 10));
-    }
-
-    document.getElementById('loanCloseDate').textContent = closeDate ? formatDateRu(closeDate.toISOString().slice(0, 10)) : '—';
-}
 
 /* ============================================================
    КРЕДИТЫ — КАРТОЧКИ
@@ -1777,10 +1763,11 @@ function renderLoans() {
     if (LOANS.length === 0) { container.innerHTML = `<div class="debt-hint">Пока нет кредитов.</div>`; return; }
 
     container.innerHTML = LOANS.map(loan => {
+        if(!loan.asOfDate) return `<div class="loan-card"><h3>${escapeHtml(loan.name)}</h3><p class="section-hint">Остатки ещё не перенесены. Сверьте кредит с выпиской, чтобы начать учёт.</p><button class="ghost" onclick="openReconcile('${loan.id}')">Настроить остатки</button></div>`;
         // ===== ЛИЧНЫЙ ДОЛГ =====
         if (loan.isPersonalDebt) {
             const paid = loan.initialAmount - loan.bodyDebt;
-            const percent = (paid / loan.initialAmount) * 100;
+            const percent = loan.initialAmount > 0 ? Math.max(0,Math.min(100,(paid / loan.initialAmount) * 100)) : 0;
 
             return `
                 <div class="loan-card" style="border-top-color:#ff8ddc">
@@ -1802,6 +1789,7 @@ function renderLoans() {
                         <div class="info-item"><div class="k">Проценты</div><div class="v" style="color:#8b929c">Без процентов</div></div>
                     </div>
                     <div class="actions">
+                        <button class="ghost" onclick="openReconcile('${loan.id}')">Сверить остаток</button>
                         <button class="ok" onclick="openPersonalDebtPayModal('${loan.id}')">💵 Вернул</button>
                     </div>
                 </div>
@@ -1810,7 +1798,7 @@ function renderLoans() {
 
         // ===== ОБЫЧНЫЙ КРЕДИТ =====
         const paid = loan.initialAmount - loan.bodyDebt;
-        const percent = (paid / loan.initialAmount) * 100;
+        const percent = loan.initialAmount > 0 ? Math.max(0,Math.min(100,(paid / loan.initialAmount) * 100)) : 0;
 
         return `
             <div class="loan-card">
@@ -1834,6 +1822,7 @@ function renderLoans() {
                     <div class="info-item"><div class="k">Дата закрытия</div><div class="v" style="color:#4cff9a">${formatDateRu(loan.closeDate)}</div></div>
                 </div>
                 <div class="actions">
+                    <button class="ghost" onclick="openReconcile('${loan.id}')">Сверить с выпиской</button>
                     <button class="ok" onclick="openLoanPayModal('${loan.id}')">💰 Внести платёж</button>
                     <button class="warn" onclick="openPrepayModal('${loan.id}')">⚡ Досрочно</button>
                     <button onclick="openLoanScheduleModal('${loan.id}')">📅 График</button>
@@ -1881,74 +1870,12 @@ function updatePersonalDebtPreview() {
     document.getElementById('personalDebtNew').textContent = fmt2(newBody);
 }
 
-function confirmPersonalDebtPayment() {
-    const loan = LOANS.find(l => l.id === personalDebtActiveId);
-    if (!loan) return;
 
-    const amount = Number(document.getElementById('personalDebtAmount').value);
-    const date = document.getElementById('personalDebtDate').value || todayISO();
-    const owner = document.getElementById('personalDebtOwner').value;
-
-    if (!amount || amount <= 0) { setStatus('Введите сумму', 'err'); return; }
-
-    const cut = Math.min(amount, loan.bodyDebt);
-    loan.bodyDebt = Math.max(0, loan.bodyDebt - cut);
-    loan.totalRemaining = loan.bodyDebt;
-
-    const txData = {
-        date,
-        desc: `Возврат долга: ${loan.name}`,
-        category: 'Долг',
-        amount: cut,
-        type: 'loan-payment',
-        owner,
-        createdAt: Date.now()
-    };
-
-    setStatus('Сохранение…');
-    db.collection(COLLECTION).add(txData).then(() => {
-        closePersonalDebtPayModal();
-        renderAll();
-        setStatus('Долг возвращён', 'ok');
-        setTimeout(() => setStatus(''), 2000);
-    }).catch(e => setStatus('Ошибка: ' + e.message, 'err'));
-}
 
 /* ============================================================
    КРЕДИТЫ — ГРАФИК / ПЛАТЁЖ / ДОСРОЧКА
    ============================================================ */
-function generateSchedule(loan) {
-    const result = [];
-    let body = loan.bodyDebt;
-    let penalty = loan.penalty;
-    const monthlyRate = loan.rate / 100 / 12;
-    const payment = loan.monthlyPayment;
-    let date = new Date(loan.nextPaymentDate);
-    const closeDate = new Date(loan.closeDate);
-    let n = 1;
 
-    while (body > 0 && n < 200 && date <= closeDate) {
-        const interest = body * monthlyRate;
-        let bodyPayment = payment - interest;
-        if (bodyPayment >= body) bodyPayment = body;
-        const newBody = body - bodyPayment;
-        const penaltyPart = Math.min(penalty, 81.97);
-        const actualPenalty = penaltyPart > 0 ? penaltyPart : 0;
-
-        result.push({
-            n, date: date.toISOString().slice(0, 10),
-            payment: bodyPayment + interest + actualPenalty,
-            body: bodyPayment, interest, penalty: actualPenalty,
-            remain: Math.max(0, newBody)
-        });
-
-        body = newBody;
-        penalty = Math.max(0, penalty - actualPenalty);
-        date.setMonth(date.getMonth() + 1);
-        n++;
-    }
-    return result;
-}
 
 function openLoanScheduleModal(loanId) {
     const loan = LOANS.find(l => l.id === loanId);
@@ -1980,23 +1907,7 @@ function closeLoanScheduleModal() {
     document.body.style.overflow = '';
 }
 
-function openLoanPayModal(loanId) {
-    const loan = LOANS.find(l => l.id === loanId);
-    if (!loan || loan.isPersonalDebt) return;
-    activeLoanId = loanId;
-    document.getElementById('loanPayTitle').textContent = `${loan.name} · ${loan.bank}`;
-    document.getElementById('loanPayDate').value = todayISO();
 
-    const bd = loan.nextPaymentBreakdown;
-    document.getElementById('loanPayBody').textContent = fmt2(bd.body);
-    document.getElementById('loanPayInterest').textContent = fmt2(bd.interest);
-    document.getElementById('loanPayPenalty').textContent = fmt2(bd.penalty);
-    document.getElementById('loanPayTotal').textContent = fmt2(bd.body + bd.interest + bd.penalty);
-    document.getElementById('loanPayAmount').value = (bd.body + bd.interest + bd.penalty).toFixed(2);
-
-    document.getElementById('loanPayModal').classList.add('show');
-    document.body.style.overflow = 'hidden';
-}
 
 function closeLoanPayModal() {
     activeLoanId = null;
@@ -2004,50 +1915,7 @@ function closeLoanPayModal() {
     document.body.style.overflow = '';
 }
 
-function confirmLoanPayment() {
-    const loan = LOANS.find(l => l.id === activeLoanId);
-    if (!loan) return;
 
-    const amount = Number(document.getElementById('loanPayAmount').value);
-    const date = document.getElementById('loanPayDate').value || todayISO();
-    const owner = document.getElementById('loanPayOwner').value;
-    if (!amount || amount <= 0) { setStatus('Введите сумму', 'err'); return; }
-
-    const bd = loan.nextPaymentBreakdown;
-
-    loan.bodyDebt = Math.max(0, loan.bodyDebt - bd.body);
-    loan.penalty = Math.max(0, loan.penalty - bd.penalty);
-    loan.interestRemaining = Math.max(0, loan.interestRemaining - bd.interest);
-
-    const nd = new Date(loan.nextPaymentDate);
-    nd.setMonth(nd.getMonth() + 1);
-    loan.nextPaymentDate = nd.toISOString().slice(0, 10);
-
-    const monthlyRate = loan.rate / 100 / 12;
-    const newInterest = loan.bodyDebt * monthlyRate;
-    const newBody = loan.monthlyPayment - newInterest;
-    const newPenalty = Math.min(loan.penalty, 81.97);
-
-    loan.nextPaymentBreakdown = { body: newBody, interest: newInterest, penalty: newPenalty };
-
-    const txData = {
-        date,
-        desc: `Платёж: ${loan.name} (тело ${fmt2(bd.body)} + % ${fmt2(bd.interest)}${bd.penalty > 0 ? ' + пеня ' + fmt2(bd.penalty) : ''})`,
-        category: 'Кредиты',
-        amount,
-        type: 'loan-payment',
-        owner,
-        createdAt: Date.now()
-    };
-
-    setStatus('Сохранение…');
-    db.collection(COLLECTION).add(txData).then(() => {
-        closeLoanPayModal();
-        renderAll();
-        setStatus('Платёж внесён', 'ok');
-        setTimeout(() => setStatus(''), 2000);
-    }).catch(e => setStatus('Ошибка: ' + e.message, 'err'));
-}
 
 function openPrepayModal(loanId) {
     const loan = LOANS.find(l => l.id === loanId);
@@ -2079,213 +1947,21 @@ function monthsBetween(dateFrom, dateTo) {
     return Math.max(0, (dateTo.getFullYear() - dateFrom.getFullYear()) * 12 + (dateTo.getMonth() - dateFrom.getMonth()));
 }
 
-function updatePrepayPreview() {
-    const loan = LOANS.find(l => l.id === activeLoanId);
-    if (!loan) return;
 
-    const amount = Number(document.getElementById('prepayAmount').value) || 0;
-    const target = document.getElementById('prepayTarget').value;
-    const strategy = document.getElementById('prepayStrategy').value;
 
-    document.getElementById('prepayStrategyField').style.display = target === 'body' ? 'block' : 'none';
 
-    const oldBody = loan.bodyDebt;
-    const oldMonthly = loan.monthlyPayment;
-    const oldCloseDate = new Date(loan.closeDate);
-    const monthlyRate = loan.rate / 100 / 12;
-
-    let newBody = oldBody, newMonthly = oldMonthly, newCloseDate = oldCloseDate;
-    let interestCut = 0, savings = 0;
-
-    if (target === 'body') {
-        newBody = Math.max(0, oldBody - amount);
-
-        if (strategy === 'reduce_term') {
-            if (newBody > 0 && oldMonthly > newBody * monthlyRate) {
-                const n = -Math.log(1 - (monthlyRate * newBody) / oldMonthly) / Math.log(1 + monthlyRate);
-                const monthsLeft = Math.ceil(n);
-                newCloseDate = new Date();
-                newCloseDate.setMonth(newCloseDate.getMonth() + monthsLeft);
-
-                const monthsOld = monthsBetween(new Date(loan.nextPaymentDate), oldCloseDate);
-                savings = Math.max(0, (oldMonthly * monthsOld - oldBody) - (oldMonthly * monthsLeft - newBody));
-            } else if (newBody === 0) {
-                newCloseDate = new Date();
-                savings = loan.interestRemaining;
-            }
-        } else {
-            const monthsLeft = monthsBetween(new Date(loan.nextPaymentDate), oldCloseDate);
-            if (monthsLeft > 0 && newBody > 0) {
-                newMonthly = newBody * (monthlyRate * Math.pow(1 + monthlyRate, monthsLeft))
-                    / (Math.pow(1 + monthlyRate, monthsLeft) - 1);
-                savings = (oldMonthly - newMonthly) * monthsLeft;
-            } else if (newBody === 0) {
-                newMonthly = 0;
-                savings = loan.interestRemaining;
-            }
-        }
-    } else {
-        interestCut = amount;
-        if (loan.interestRemaining > 0) {
-            const newInterestRemaining = Math.max(0, loan.interestRemaining - amount);
-            const monthsLeft = monthsBetween(new Date(loan.nextPaymentDate), oldCloseDate);
-            const interestPerMonth = loan.interestRemaining / Math.max(1, monthsLeft);
-            const newMonthsLeft = Math.ceil(newInterestRemaining / interestPerMonth);
-            newCloseDate = new Date();
-            newCloseDate.setMonth(newCloseDate.getMonth() + newMonthsLeft);
-            savings = Math.max(0, (monthsLeft - newMonthsLeft) * interestPerMonth);
-        }
-    }
-
-    newBody = Math.round(newBody * 100) / 100;
-    newMonthly = Math.round(newMonthly * 100) / 100;
-    savings = Math.round(savings * 100) / 100;
-
-    prepayPreviewData = {
-        amount, target, strategy,
-        oldBody, newBody, oldMonthly, newMonthly,
-        oldCloseDate: oldCloseDate.toISOString().slice(0, 10),
-        newCloseDate: newCloseDate.toISOString().slice(0, 10),
-        interestCut, savings
-    };
-
-    document.getElementById('prepayOldBody').textContent = fmt2(oldBody);
-    document.getElementById('prepayCutBody').textContent = target === 'body' ? fmt2(Math.min(amount, oldBody)) : fmt2(0);
-    document.getElementById('prepayCutInterest').textContent = target === 'interest' ? fmt2(amount) : fmt2(0);
-    document.getElementById('prepayFinalBody').textContent = fmt2(newBody);
-    document.getElementById('prepayNewMonthly').textContent = newMonthly > 0 ? fmt2(newMonthly) + ' / мес' : '—';
-    document.getElementById('prepayNewClose').textContent = formatDateRu(newCloseDate.toISOString().slice(0, 10));
-    document.getElementById('prepaySavings').textContent = fmt2(savings);
-}
-
-function confirmPrepay() {
-    const loan = LOANS.find(l => l.id === activeLoanId);
-    if (!loan || !prepayPreviewData) return;
-
-    const amount = prepayPreviewData.amount;
-    const date = document.getElementById('prepayDate').value || todayISO();
-    const owner = document.getElementById('prepayOwner').value;
-    const target = prepayPreviewData.target;
-
-    if (!amount || amount <= 0) { setStatus('Введите сумму', 'err'); return; }
-
-    const d = prepayPreviewData;
-
-    loan.bodyDebt = d.newBody;
-    loan.monthlyPayment = d.newMonthly > 0 ? d.newMonthly : loan.monthlyPayment;
-    loan.closeDate = d.newCloseDate;
-
-    if (target === 'interest') loan.interestRemaining = Math.max(0, loan.interestRemaining - amount);
-    else loan.interestRemaining = Math.max(0, loan.interestRemaining - d.savings);
-
-    const monthlyRate = loan.rate / 100 / 12;
-    const newInterest = loan.bodyDebt * monthlyRate;
-    const newBody = Math.max(0, loan.monthlyPayment - newInterest);
-    const newPenalty = Math.min(loan.penalty, 81.97);
-
-    loan.nextPaymentBreakdown = { body: newBody, interest: newInterest, penalty: newPenalty };
-
-    const targetLabel = target === 'body' ? 'основной долг' : 'проценты';
-    const txData = {
-        date,
-        desc: `Досрочный платёж: ${loan.name} (${targetLabel})`,
-        category: 'Кредиты',
-        amount,
-        type: 'loan-payment',
-        owner,
-        createdAt: Date.now()
-    };
-
-    setStatus('Сохранение…');
-    db.collection(COLLECTION).add(txData).then(() => {
-        closePrepayModal();
-        renderAll();
-        setStatus('Досрочный платёж внесён', 'ok');
-        setTimeout(() => setStatus(''), 2000);
-    }).catch(e => setStatus('Ошибка: ' + e.message, 'err'));
-}
 
 /* ============================================================
    КАЛЬКУЛЯТОР ДОСРОЧКИ
    ============================================================ */
-function initCalcLoans() {
-    const sel = document.getElementById('calcLoan');
-    const loansForCalc = LOANS.filter(l => !l.isPersonalDebt);
-    sel.innerHTML = loansForCalc.map(l => `<option value="${l.id}">${escapeHtml(l.name)} · остаток ${fmt(l.bodyDebt)}</option>`).join('');
-    calcPrepayStrategy();
-}
 
-function calcPrepayStrategy() {
-    const loanId = document.getElementById('calcLoan').value;
-    const loan = LOANS.find(l => l.id === loanId);
-    if (!loan) return;
-    const amount = Number(document.getElementById('calcAmount').value) || 0;
 
-    const oldBody = loan.bodyDebt;
-    const oldMonthly = loan.monthlyPayment;
-    const monthlyRate = loan.rate / 100 / 12;
-    const oldCloseDate = new Date(loan.closeDate);
 
-    const newBodyTerm = Math.max(0, oldBody - amount);
-    let newMonthsTerm = 0;
-    let savingsTerm = 0;
-    let newCloseTerm = oldCloseDate;
-
-    if (newBodyTerm > 0 && oldMonthly > newBodyTerm * monthlyRate) {
-        const n = -Math.log(1 - (monthlyRate * newBodyTerm) / oldMonthly) / Math.log(1 + monthlyRate);
-        newMonthsTerm = Math.ceil(n);
-        newCloseTerm = new Date();
-        newCloseTerm.setMonth(newCloseTerm.getMonth() + newMonthsTerm);
-
-        const monthsOld = monthsBetween(new Date(loan.nextPaymentDate), oldCloseDate);
-        savingsTerm = Math.max(0, (oldMonthly * monthsOld - oldBody) - (oldMonthly * newMonthsTerm - newBodyTerm));
-    } else if (newBodyTerm === 0) {
-        savingsTerm = loan.interestRemaining;
-        newCloseTerm = new Date();
-    }
-
-    const monthsLeft = monthsBetween(new Date(loan.nextPaymentDate), oldCloseDate);
-    let newMonthlyPay = oldMonthly;
-    let savingsPay = 0;
-
-    if (monthsLeft > 0 && newBodyTerm > 0) {
-        newMonthlyPay = newBodyTerm * (monthlyRate * Math.pow(1 + monthlyRate, monthsLeft))
-            / (Math.pow(1 + monthlyRate, monthsLeft) - 1);
-        savingsPay = (oldMonthly - newMonthlyPay) * monthsLeft;
-    } else if (newBodyTerm === 0) {
-        newMonthlyPay = 0;
-        savingsPay = loan.interestRemaining;
-    }
-
-    document.getElementById('calcSaveTerm').textContent = fmt(Math.round(savingsTerm));
-    document.getElementById('calcNewTerm').textContent = newMonthsTerm > 0 ? newMonthsTerm + ' мес' : 'кредит закрыт';
-    document.getElementById('calcNewClose').textContent = formatDateRu(newCloseTerm.toISOString().slice(0, 10));
-    document.getElementById('calcMonthlyTerm').textContent = fmt2(oldMonthly) + ' / мес';
-
-    document.getElementById('calcSavePay').textContent = fmt(Math.round(savingsPay));
-    document.getElementById('calcNewTermPay').textContent = monthsLeft > 0 ? monthsLeft + ' мес' : '—';
-    document.getElementById('calcNewClosePay').textContent = formatDateRu(oldCloseDate.toISOString().slice(0, 10));
-    document.getElementById('calcMonthlyPay').textContent = fmt2(newMonthlyPay) + ' / мес';
-
-    const cards = document.querySelectorAll('.calc-strategy .strategy-card');
-    cards.forEach(c => c.classList.remove('best'));
-    if (savingsTerm >= savingsPay) cards[0].classList.add('best');
-    else cards[1].classList.add('best');
-}
 
 /* ============================================================
    ЭКСПОРТ
    ============================================================ */
-function downloadCSV(rows, filename) {
-    const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';')).join('\n');
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-}
+
 
 function exportCSV() { exportTransactionsCSV(); }
 
@@ -2318,12 +1994,13 @@ function exportLoansCSV() {
 
 function exportFullReport() {
     const printWindow = window.open('', '_blank');
+    if(!printWindow) { setStatus('Разрешите всплывающее окно для печати отчёта.', 'err'); return; }
 
     let loansRows = '';
     LOANS.forEach(loan => {
         loansRows += `
             <tr>
-                <td>${loan.name} (${loan.bank})</td>
+                <td>${escapeHtml(loan.name)} (${escapeHtml(loan.bank)})</td>
                 <td style="text-align:right">${fmt(loan.initialAmount)}</td>
                 <td style="text-align:right">${fmt(loan.bodyDebt)}</td>
                 <td style="text-align:right">${loan.isPersonalDebt ? '—' : fmt(loan.interestRemaining)}</td>
@@ -2418,8 +2095,10 @@ function renderMonth() {
     document.getElementById('monthLabel').textContent = `${MONTHS[currentMonth]} ${currentYear}`;
     const list = document.getElementById('list');
     let monthItems = getMonthItems(currentYear, currentMonth);
+    const query=document.getElementById('searchTransactions').value.trim().toLocaleLowerCase('ru');
+    if(query) monthItems=monthItems.filter(it=>[it.desc,it.category,it.counterparty].some(v=>String(v||'').toLocaleLowerCase('ru').includes(query)));
 
-    if (ownerFilter !== 'all') monthItems = monthItems.filter(it => it.owner === ownerFilter);
+    if (ownerFilter !== 'all') monthItems = monthItems.filter(it => it.owner === ownerFilter || (it.type==='transfer' && it.recipient===ownerFilter));
 
     monthItems.sort((a, b) => {
         if (a.date !== b.date) return (b.date || '').localeCompare(a.date || '');
@@ -2436,6 +2115,7 @@ function renderMonth() {
             const isLoan = it.type === 'loan-payment';
 
             const prefix =
+                it.type === 'transfer' ? '↔' :
                 it.type === 'income' ? '+' :
                 it.type === 'expense' ? '−' :
                 it.type === 'debt-in' ? '↓' :
@@ -2451,24 +2131,24 @@ function renderMonth() {
             const amountClass = isLoan ? 'loan' : it.type;
 
             // Кнопка «Удалить» — только для Андрея
-            const deleteBtn = isAndrey
-                ? `<button class="del" onclick="removeItemWithPassword('${it.id}')">✕ Удалить</button>`
+            const deleteBtn = isAndrey && !isLoan
+                ? `<button class="del" data-delete-id="${escapeHtml(it.id)}">✕ Удалить</button>`
                 : '';
 
             return `
                 <tr>
                     <td data-label="Дата">${formatDateRu(it.date)}</td>
                     <td data-label="Описание">${descText}</td>
-                    <td data-label="Кто"><span class="badge ${it.owner}">${OWNER_LABEL[it.owner] || it.owner}</span></td>
+                    <td data-label="Кто"><span class="badge ${escapeHtml(it.owner)}">${escapeHtml(OWNER_LABEL[it.owner] || it.owner)}</span></td>
                     <td data-label="Категория">
-                        <span class="badge ${TYPE_BADGE[it.type] || ''}" style="margin-right:4px">${TYPE_LABEL[it.type] || it.type}</span>
+                        <span class="badge ${TYPE_BADGE[it.type] || ''}" style="margin-right:4px">${escapeHtml(TYPE_LABEL[it.type] || it.type)}</span>
                         ${escapeHtml(it.category)}
                     </td>
                     <td data-label="Сумма" class="amount ${amountClass}">
                         ${prefix} ${fmt(it.amount)}
                     </td>
                     <td class="actions">
-                        <button class="edit" onclick="openEditModal('${it.id}')">✏️ Изменить</button>
+                        ${isLoan ? '<span class="muted">Связан с кредитом</span>' : it.type==='transfer' ? '<span class="muted">Между счетами</span>' : `<button class="edit" data-edit-id="${escapeHtml(it.id)}">Изменить</button>`}
                         ${deleteBtn}
                     </td>
                 </tr>
@@ -2569,7 +2249,7 @@ function renderYearStats() {
     balEl.textContent = fmt(balance);
     balEl.style.color = balance >= 0 ? '#4cff9a' : '#ff6b6b';
 
-    const monthsWithData = new Set(yearItems.map(it => it.date.slice(0, 7))).size || 1;
+    const monthsWithData = currentYear === new Date().getFullYear() ? new Date().getMonth()+1 : currentYear < new Date().getFullYear() ? 12 : Math.max(1,...yearItems.map(it=>Number(it.date.slice(5,7))));
     document.getElementById('yearAvgExpense').textContent = fmt(expense / monthsWithData);
 }
 
@@ -2601,13 +2281,14 @@ function renderMonthDeltas() {
     document.getElementById('statExpenseYTD').textContent = fmt(ytdExpense);
 
     let prevYtdIncome = 0, prevYtdExpense = 0;
-    for (let m = 0; m < currentMonth; m++) {
-        const mi = getMonthItems(currentYear, m);
+    for (let m = 0; m <= currentMonth; m++) {
+        const mi = getMonthItems(currentYear - 1, m);
         prevYtdIncome += sumIncomes(mi);
         prevYtdExpense += sumExpenses(mi);
     }
     setDelta('deltaIncomeYTD', ytdIncome, prevYtdIncome, false);
     setDelta('deltaExpenseYTD', ytdExpense, prevYtdExpense, true);
+    ['deltaIncomeYTD','deltaExpenseYTD'].forEach(id=>{const el=document.getElementById(id);el.textContent=el.textContent.replace('к прошлому месяцу','к тому же периоду прошлого года');});
 }
 
 function setDelta(elId, current, prev, invertColor) {
@@ -2650,6 +2331,7 @@ const chartOptions = {
 };
 
 function renderCharts() {
+    if (typeof Chart === 'undefined') { document.querySelectorAll('.chart-container').forEach(el=>{el.textContent='График недоступен: библиотека не загрузилась. Итоги доступны в таблицах.';}); return; }
     const yearData = getYearTotals(currentYear);
     const labels = MONTHS.map(m => m.slice(0, 3));
 
@@ -2670,7 +2352,7 @@ function renderCharts() {
     for (let m = 0; m < 12; m++) {
         andreyData.push(sumExpenses(getMonthItems(currentYear, m, 'andrey')));
         leraData.push(sumExpenses(getMonthItems(currentYear, m, 'lera')));
-        sharedData.push(sumExpenses(getMonthItems(currentYear, m, 'andrey')) + sumExpenses(getMonthItems(currentYear, m, 'lera')));
+        sharedData.push(sumExpenses(getMonthItems(currentYear, m)));
     }
 
     if (chartByPerson) chartByPerson.destroy();
@@ -2681,7 +2363,7 @@ function renderCharts() {
             datasets: [
                 { label: 'Андрей', data: andreyData, backgroundColor: 'rgba(76, 141, 255, 0.75)', borderColor: '#4c8dff', borderWidth: 1, borderRadius: 4 },
                 { label: 'Леруська', data: leraData, backgroundColor: 'rgba(255, 141, 220, 0.75)', borderColor: '#ff8ddc', borderWidth: 1, borderRadius: 4 },
-                { label: 'Совместно', data: sharedData, backgroundColor: 'rgba(255, 200, 76, 0.75)', borderColor: '#ffc84c', borderWidth: 1, borderRadius: 4 }
+                { label: 'Всего семьи', data: sharedData, backgroundColor: 'rgba(255, 200, 76, 0.75)', borderColor: '#ffc84c', borderWidth: 1, borderRadius: 4 }
             ]
         },
         options: chartOptions
@@ -2796,6 +2478,371 @@ document.addEventListener('keydown', e => {
     }
 });
 
+let unsubscribeLoans = null;
+let currentRole = null;
+let dataReady = false;
+let writesPending = false;
+const initialLoans = JSON.parse(JSON.stringify(LOANS));
+const F = FinanceCore;
+
+function getCurrentUserRole() { return currentRole; }
+
+function calcCurrentAccount(owner) {
+    let cents = Math.round((accounts[owner] || 0) * 100);
+    items.forEach(it => {
+        const value = Math.round(Number(it.amount || 0) * 100);
+        if(it.type === 'transfer') {
+            if(it.owner === owner) cents -= value;
+            if(it.recipient === owner) cents += value;
+        } else if(it.owner === owner) {
+            if(isIncomeLike(it.type)) cents += value;
+            else if(isExpenseLike(it.type)) cents -= value;
+        }
+    });
+    return cents / 100;
+}
+
+function transferData(from, to, value, date) {
+    if(!['andrey','lera'].includes(from) || !['andrey','lera'].includes(to) || from === to)
+        throw new Error('Выберите два разных счёта.');
+    F.date(date);
+    if(date > todayISO()) throw new Error('Дата перевода не может быть в будущем.');
+    return {date,owner:from,recipient:to,amount:F.amount(value),type:'transfer',category:'Перевод между счетами',
+        desc:`Перевод: ${OWNER_LABEL[from]} → ${OWNER_LABEL[to]}`,createdAt:Date.now()};
+}
+
+function transferMoney() {
+    return withWrite(async()=>{
+        const from=document.getElementById('transferFrom').value;
+        const to=from==='andrey'?'lera':'andrey';
+        const data=transferData(from,to,document.getElementById('transferAmount').value,document.getElementById('transferDate').value);
+        // One immutable ledger entry affects both accounts; no partial writes.
+        await db.collection(COLLECTION).add(data);
+        document.getElementById('transferAmount').value='';
+        currentYear=Number(data.date.slice(0,4));currentMonth=Number(data.date.slice(5,7))-1;
+        renderAll();
+    });
+}
+
+function updateAccountPermissions() {
+    const canEdit = getCurrentUserRole() === 'andrey';
+    document.querySelectorAll('.account-card .change-row').forEach(row => {
+        row.classList.toggle('hidden', !canEdit);
+        row.querySelectorAll('input,button').forEach(control => control.disabled = !canEdit);
+    });
+}
+
+async function withWrite(action) {
+    if (writesPending) return;
+    if (!dataReady || !currentRole) { setStatus('Дождитесь загрузки данных и проверки доступа.', 'err'); return; }
+    writesPending = true;
+    const buttons = [...document.querySelectorAll('button')].filter(b => /addItem|saveEdit|confirm.*Payment|confirmPrepay|setAccountBalance|transferMoney/.test(b.getAttribute('onclick') || ''));
+    buttons.forEach(b => b.disabled = true);
+    setStatus('Сохранение…');
+    try { await action(); setStatus('Сохранено', 'ok'); }
+    catch (e) { console.error(e); setStatus(e.code === 'permission-denied' ? 'Нет доступа. Проверьте правила Firebase и роль пользователя.' : (e.message || 'Не удалось сохранить. Повторите попытку.'), 'err'); }
+    finally { writesPending = false; buttons.forEach(b => b.disabled = false); }
+}
+
+function setStatus(text, cls = '') {
+    const el = document.getElementById('status');
+    el.textContent = text; el.className = 'status ' + cls;
+    const toast = document.getElementById('globalStatus');
+    if (toast) { toast.textContent = text; toast.className = 'global-status ' + cls; toast.hidden = !text; }
+    if(cls==='ok' && toast) setTimeout(()=>{if(toast.textContent===text)toast.hidden=true;},4000);
+}
+
+function subscribe() {
+    [unsubscribeTransactions,unsubscribeAccounts,unsubscribeLoans].forEach(fn => fn && fn());
+    dataReady = false;
+    const loaded = new Set();
+    const ready = name => { loaded.add(name); dataReady = loaded.size === 3; if(dataReady) setStatus('Данные загружены', 'ok'); };
+    const failed = e => { dataReady=false; setStatus('Не удалось загрузить данные: ' + e.message,'err'); };
+    unsubscribeTransactions = db.collection(COLLECTION).orderBy('date','asc').onSnapshot(snap => {
+        items = snap.docs.map(d => ({...d.data(),id:d.id})).filter(it => {
+            try { F.date(it.date); F.amount(it.amount); return Object.hasOwn(TYPE_LABEL,it.type) && ['andrey','lera','shared'].includes(it.owner) && (it.type!=='transfer' || (['andrey','lera'].includes(it.owner) && ['andrey','lera'].includes(it.recipient) && it.owner!==it.recipient)); } catch { return false; }
+        });
+        ready('transactions'); renderAll();
+        if (items.length !== snap.docs.length) setStatus('Есть некорректные записи: они исключены из расчётов. Проверьте данные в Firebase.','err');
+        else if(snap.metadata?.hasPendingWrites) setStatus('Ожидается подтверждение сервера…');
+        else if(snap.metadata?.fromCache) setStatus('Показаны данные из кэша. Проверьте подключение.');
+    },failed);
+    unsubscribeAccounts = db.collection(ACCOUNTS_COLLECTION).doc('main').onSnapshot(doc => {
+        const data=doc.exists ? doc.data() : {};
+        accounts={andrey:Number(data.andrey)||0,lera:Number(data.lera)||0};
+        ready('accounts'); renderAccounts();
+    },failed);
+    unsubscribeLoans = db.collection('loans').onSnapshot(snap => {
+        LOANS.splice(0,LOANS.length,...initialLoans.map(base => {
+            const saved=snap.docs.find(d => d.id===base.id);
+            return saved ? {...base,...saved.data(),id:base.id} : JSON.parse(JSON.stringify(base));
+        }));
+        ready('loans'); renderAll();
+    },failed);
+}
+
+function lockApp() {
+    [unsubscribeTransactions,unsubscribeAccounts,unsubscribeLoans].forEach(fn => fn && fn());
+    unsubscribeTransactions=unsubscribeAccounts=unsubscribeLoans=null;
+    items=[]; accounts={andrey:0,lera:0}; dataReady=false; currentRole=null;
+    LOANS.splice(0,LOANS.length,...JSON.parse(JSON.stringify(initialLoans)));
+    document.querySelectorAll('.modal-bg.show').forEach(m=>m.classList.remove('show'));
+    document.body.style.overflow='';
+    document.getElementById('loginScreen').classList.remove('hidden');
+    document.getElementById('appContent').style.display='none';
+    document.getElementById('loginPassword').value='';
+    document.getElementById('globalStatus').hidden=true;
+    renderAll();
+}
+
+function readEntry(edit=false) {
+    const get = id => document.getElementById(id).value.trim();
+    const data={date:F.date(get(edit?'eDate':'dateInput')),desc:get(edit?'eDesc':'desc'),
+        amount:F.amount(get(edit?'eAmount':'amount')),type:get(edit?'eType':'type'),
+        category:get(edit?'eCategory':'category'),owner:get(edit?'eOwner':'owner')};
+    if(!data.desc || data.desc.length>300) throw new Error('Описание должно содержать от 1 до 300 символов.');
+    if(!['andrey','lera'].includes(data.owner) || !Object.hasOwn(TYPE_LABEL,data.type) || ['loan-payment','transfer'].includes(data.type)) throw new Error('Используйте специальную форму кредита или перевода.');
+    if(isDebtType(data.type)) { data.counterparty=get(edit?'eCounterparty':'counterparty'); if(!data.counterparty) throw new Error('Укажите контрагента.'); }
+    return data;
+}
+
+function addItem() {
+    return withWrite(async()=>{
+        const data=readEntry();
+        await db.collection(COLLECTION).add({...data,createdAt:Date.now()});
+        ['desc','amount','counterparty'].forEach(id=>document.getElementById(id).value='');
+        currentYear=Number(data.date.slice(0,4)); currentMonth=Number(data.date.slice(5,7))-1;
+        renderAll();
+    });
+}
+
+function saveEdit() {
+    return withWrite(async()=>{
+        const it=items.find(x=>x.id===editingId);
+        if(!it || ['loan-payment','transfer'].includes(it.type)) throw new Error('Кредитные платежи и переводы нельзя менять как обычную запись.');
+        const data=readEntry(true);
+        if(!data.counterparty) data.counterparty=firebase.firestore.FieldValue.delete();
+        await db.collection(COLLECTION).doc(editingId).update(data);
+        closeEditModal();
+    });
+}
+
+function setAccountBalance(owner) {
+    if(getCurrentUserRole() !== 'andrey') {
+        setStatus('Начальные остатки может задавать только Андрей.', 'err');
+        return;
+    }
+    return withWrite(async()=>{
+        if(getCurrentUserRole() !== 'andrey') throw new Error('Начальные остатки может задавать только Андрей.');
+        if(!['andrey','lera'].includes(owner)) throw new Error('Неизвестный счёт.');
+        const input=document.getElementById(owner==='andrey'?'accAndreyInput':'accLeraInput');
+        const n=Number(input.value);
+        if(!input.value.trim() || !Number.isFinite(n) || Math.abs(n)>1e12 || Math.abs(n*100-Math.round(n*100))>0.001) throw new Error('Введите начальный остаток с точностью до копеек.');
+        await db.collection(ACCOUNTS_COLLECTION).doc('main').set({[owner]:F.money(n)},{merge:true});
+        input.value='';
+    });
+}
+
+function removeItemWithPassword(id) {
+    if(currentRole!=='andrey') return setStatus('Удаление доступно Андрею.','err');
+    const it=items.find(x=>x.id===id);
+    if(!it) return;
+    if(it.type==='loan-payment') return setStatus('Кредитный платёж связан с остатком долга. Для исправления нужна сверка, обычное удаление заблокировано.','err');
+    if(!confirm(`Удалить запись «${it.desc}» на ${fmt(it.amount)}?`)) return;
+    return withWrite(()=>db.collection(COLLECTION).doc(id).delete());
+}
+
+function clearAllData() {
+    setStatus('Массовое удаление отключено: оно уничтожает историю и нарушает остатки кредитов. Используйте экспорт и удаление отдельных записей.','err');
+}
+
+async function saveLoanOperation(id, date, owner, value, mode, enteredBreakdown) {
+    F.date(date);
+    if(!['andrey','lera'].includes(owner)) throw new Error('Укажите плательщика.');
+    if(date>todayISO()) throw new Error('Фактический платёж не может быть датирован будущим.');
+    const base=initialLoans.find(l=>l.id===id);
+    if(!base) throw new Error('Кредит не найден.');
+    const ref=db.collection('loans').doc(id);
+    const txRef=db.collection(COLLECTION).doc();
+    await db.runTransaction(async tx=>{
+        const doc=await tx.get(ref);
+        const loan=doc.exists ? {...base,...doc.data()} : {...base};
+        if(!doc.exists) throw new Error('Сначала подтвердите исходные остатки этого кредита по выписке.');
+        if(date<loan.asOfDate || (loan.lastPaymentDate && date<loan.lastPaymentDate)) throw new Error('Дата раньше сверки или последнего платежа. Нужна сверка истории.');
+        if(enteredBreakdown) loan.nextPaymentBreakdown=enteredBreakdown;
+        const {next,breakdown}=F.payment(loan,value,mode);
+        next.lastPaymentDate=date; next.revision=(loan.revision||0)+1; next.lastTransactionId=txRef.id;
+        tx.set(ref,next);
+        tx.set(txRef,{date,owner,amount:F.amount(value),type:'loan-payment',category:mode==='personal'?'Долг':'Кредиты',
+            desc:`${mode==='regular'?'Платёж':mode==='personal'?'Возврат долга':'Досрочный платёж'}: ${loan.name}`,
+            loanId:id,breakdown,createdAt:Date.now(),loanRevision:next.revision});
+    });
+}
+
+function openLoanPayModal(loanId) {
+    const loan=LOANS.find(l=>l.id===loanId); if(!loan || loan.isPersonalDebt) return;
+    activeLoanId=loanId;
+    document.getElementById('loanPayTitle').textContent=`${loan.name} · Укажите фактическую разбивку из выписки`;
+    document.getElementById('loanPayDate').value=todayISO();
+    document.getElementById('loanPayOwner').value=currentRole;
+    const bd=loan.breakdownVerified===false ? {body:0,interest:0,penalty:0} : loan.nextPaymentBreakdown;
+    ['body','interest','penalty'].forEach(k=>document.getElementById('actual-'+k).value=bd[k].toFixed(2));
+    updateActualPayment();
+    document.getElementById('loanPayModal').classList.add('show'); document.body.style.overflow='hidden';
+}
+
+function updateActualPayment() {
+    const bd=Object.fromEntries(['body','interest','penalty'].map(k=>[k,Number(document.getElementById('actual-'+k).value)||0]));
+    const total=F.money(bd.body+bd.interest+bd.penalty);
+    document.getElementById('loanPayAmount').value=total.toFixed(2);
+    document.getElementById('loanPayTotal').textContent=fmt2(total);
+}
+
+function confirmLoanPayment() {
+    return withWrite(async()=>{
+        const bd=Object.fromEntries(['body','interest','penalty'].map(k=>[k,F.amount(document.getElementById('actual-'+k).value,true)]));
+        await saveLoanOperation(activeLoanId,document.getElementById('loanPayDate').value,document.getElementById('loanPayOwner').value,document.getElementById('loanPayAmount').value,'regular',bd);
+        closeLoanPayModal();
+    });
+}
+
+function confirmPersonalDebtPayment() {
+    return withWrite(async()=>{
+        await saveLoanOperation(personalDebtActiveId,document.getElementById('personalDebtDate').value,document.getElementById('personalDebtOwner').value,document.getElementById('personalDebtAmount').value,'personal');
+        closePersonalDebtPayModal();
+    });
+}
+
+function confirmPrepay() {
+    return withWrite(async()=>{
+        await saveLoanOperation(activeLoanId,document.getElementById('prepayDate').value,document.getElementById('prepayOwner').value,document.getElementById('prepayAmount').value,document.getElementById('prepayTarget').value);
+        closePrepayModal();
+    });
+}
+
+function updatePrepayPreview() {
+    const loan=LOANS.find(l=>l.id===activeLoanId); if(!loan) return;
+    const target=document.getElementById('prepayTarget').value;
+    document.getElementById('prepayStrategyField').style.display=target==='body'?'block':'none';
+    try {
+        const paid=F.amount(document.getElementById('prepayAmount').value||0,true);
+        if(target==='interest' && paid>loan.interestRemaining) throw new Error('Сумма больше остатка процентов.');
+        const p=target==='body'?F.prepay(loan,paid,document.getElementById('prepayStrategy').value):{newBody:loan.bodyDebt,newMonthly:loan.monthlyPayment,newCloseDate:loan.closeDate,savings:0};
+        const values={prepayOldBody:fmt2(loan.bodyDebt),prepayCutBody:fmt2(target==='body'?paid:0),prepayCutInterest:fmt2(target==='interest'?paid:0),prepayFinalBody:fmt2(p.newBody),prepayNewMonthly:fmt2(p.newMonthly),prepayNewClose:p.newCloseDate?formatDateRu(p.newCloseDate):'Основной долг погашен',prepaySavings:fmt2(p.savings)};
+        Object.entries(values).forEach(([id,v])=>document.getElementById(id).textContent=v);
+    } catch(e) { ['prepayCutBody','prepayCutInterest','prepayFinalBody','prepayNewMonthly','prepayNewClose','prepaySavings'].forEach(id=>document.getElementById(id).textContent='—'); setStatus(e.message,'err'); }
+}
+
+function generateSchedule(loan) {
+    try { return F.schedule(loan); } catch(e) { setStatus(e.message,'err'); return []; }
+}
+
+function initCalcLoans() {
+    const sel=document.getElementById('calcLoan'),previous=sel.value;
+    sel.innerHTML=LOANS.filter(l=>!l.isPersonalDebt && l.asOfDate).map(l=>`<option value="${l.id}">${escapeHtml(l.name)} · ${fmt(l.bodyDebt)}</option>`).join('');
+    if([...sel.options].some(o=>o.value===previous)) sel.value=previous;
+    calcPrepayStrategy();
+}
+
+function calcPrepayStrategy() {
+    const loan=LOANS.find(l=>l.id===document.getElementById('calcLoan').value); if(!loan) return;
+    const ids=['calcSaveTerm','calcNewTerm','calcNewClose','calcMonthlyTerm','calcSavePay','calcNewTermPay','calcNewClosePay','calcMonthlyPay'];
+    try {
+        const value=document.getElementById('calcAmount').value||0;
+        const term=F.prepay(loan,value,'reduce_term'), pay=F.prepay(loan,value,'reduce_payment');
+        const values=[fmt(term.savings),`${term.months} мес`,term.newCloseDate?formatDateRu(term.newCloseDate):'Основной долг погашен',fmt2(term.newMonthly),fmt(pay.savings),`${pay.months} мес`,pay.newCloseDate?formatDateRu(pay.newCloseDate):'Основной долг погашен',fmt2(pay.newMonthly)];
+        ids.forEach((id,i)=>document.getElementById(id).textContent=values[i]);
+        document.querySelectorAll('.strategy-card').forEach((c,i)=>c.classList.toggle('best',Number(value)>0 && (i===0?term.savings>pay.savings:pay.savings>term.savings)));
+    } catch(e) { ids.forEach(id=>document.getElementById(id).textContent='—'); setStatus(e.message,'err'); }
+}
+
+function renderLoanSummary() {
+    const bank=LOANS.filter(l=>!l.isPersonalDebt && l.bodyDebt+l.interestRemaining+l.penalty>0);
+    const next=bank.map(l=>l.nextPaymentDate).filter(Boolean).sort()[0];
+    const vals={loanTotalBody:LOANS.reduce((s,l)=>s+l.bodyDebt,0),loanTotalInterest:LOANS.reduce((s,l)=>s+l.interestRemaining,0),loanTotalPenalty:LOANS.reduce((s,l)=>s+l.penalty,0),loanMonthlySum:bank.reduce((s,l)=>s+l.monthlyPayment,0),loanNextPayment:bank.filter(l=>l.nextPaymentDate===next).reduce((s,l)=>s+l.monthlyPayment,0)};
+    Object.entries(vals).forEach(([id,v])=>document.getElementById(id).textContent=fmt(v));
+    document.getElementById('loanNextDate').textContent=next?formatDateRu(next):'—';
+    const close=bank.map(l=>l.closeDate).filter(Boolean).sort().at(-1);
+    document.getElementById('loanCloseDate').textContent=close?formatDateRu(close):'—';
+}
+
+function downloadCSV(rows, filename) {
+    const cell=value=>{let s=String(value??''); if(typeof value==='string' && /^[\s]*[=+@\-]/.test(s)) s="'"+s; return '"'+s.replace(/"/g,'""')+'"';};
+    const blob=new Blob(['\uFEFF'+rows.map(r=>r.map(cell).join(';')).join('\r\n')],{type:'text/csv;charset=utf-8'});
+    downloadBlob(blob,filename);
+}
+
+function downloadBlob(blob,name) {
+    const url=URL.createObjectURL(blob),a=document.createElement('a'); a.href=url; a.download=name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+function exportBackup() {
+    if(!dataReady) return setStatus('Дождитесь полной загрузки данных.','err');
+    downloadBlob(new Blob([JSON.stringify({schemaVersion:2,exportedAt:new Date().toISOString(),accounts,transactions:items,loans:LOANS},null,2)],{type:'application/json'}),`family-finance-${todayISO()}.json`);
+}
+
+function openReconcile(loanId) {
+    const loan=LOANS.find(l=>l.id===loanId); if(!loan) return;
+    activeLoanId=loanId;
+    document.getElementById('reconcileTitle').textContent=loan.name+' · сверка с выпиской';
+    document.getElementById('recDate').value=loan.lastPaymentDate || todayISO();
+    ['initialAmount','bodyDebt','interestRemaining','penalty','monthlyPayment'].forEach(k=>document.getElementById('rec-'+k).value=loan[k]);
+    document.getElementById('recNext').value=loan.nextPaymentDate||'';
+    document.getElementById('recClose').value=loan.closeDate||'';
+    document.getElementById('reconcileModal').classList.add('show'); document.body.style.overflow='hidden';
+}
+
+function closeReconcile() { document.getElementById('reconcileModal').classList.remove('show'); document.body.style.overflow=''; }
+
+function confirmReconcile() {
+    return withWrite(async()=>{
+        if(currentRole!=='andrey') throw new Error('Сверка доступна Андрею.');
+        const shown=LOANS.find(l=>l.id===activeLoanId),base=initialLoans.find(l=>l.id===activeLoanId);
+        const date=F.date(document.getElementById('recDate').value);
+        if(date>todayISO()) throw new Error('Дата сверки не может быть в будущем.');
+        const patch=Object.fromEntries(['initialAmount','bodyDebt','interestRemaining','penalty','monthlyPayment'].map(k=>[k,F.amount(document.getElementById('rec-'+k).value,true)]));
+        patch.nextPaymentDate=base.isPersonalDebt?null:F.date(document.getElementById('recNext').value);
+        patch.closeDate=base.isPersonalDebt?null:F.date(document.getElementById('recClose').value);
+        const ref=db.collection('loans').doc(base.id),audit=db.collection('loanReconciliations').doc();
+        await db.runTransaction(async tx=>{
+            const doc=await tx.get(ref),previous=doc.exists?doc.data():base;
+            if((previous.revision||0)!==(shown.revision||0)) throw new Error('Кредит изменился на другом устройстве. Откройте сверку заново.');
+            if(previous.lastPaymentDate && date<previous.lastPaymentDate) throw new Error('Дата сверки раньше последнего платежа.');
+            const next={...base,...previous,...patch,asOfDate:date,revision:(previous.revision||0)+1,totalRemaining:F.money(patch.bodyDebt+patch.interestRemaining+patch.penalty),breakdownVerified:false};
+            tx.set(ref,next); tx.set(audit,{loanId:base.id,date,before:previous,after:next,createdAt:Date.now()});
+        });
+        closeReconcile();
+    });
+}
+
+function enhanceInterface() {
+    document.getElementById('transferDate').value=todayISO();
+    const nav=document.createElement('nav'); nav.className='section-nav'; nav.setAttribute('aria-label','Разделы приложения');
+    document.querySelectorAll('#appContent > .card').forEach((card,i)=>{const h=card.querySelector('h2');if(!h)return;card.id='section-'+i;const link=document.createElement('a');link.href='#'+card.id;link.textContent=h.textContent;nav.appendChild(link);});
+    document.getElementById('appContent').prepend(nav);
+    document.querySelectorAll('label').forEach(l=>{const field=l.parentElement.querySelector('input,select');if(field?.id) l.htmlFor=field.id;});
+    document.querySelectorAll('.modal-bg').forEach(bg=>{
+        const dialog=bg.querySelector('.modal'),h=dialog.querySelector('h3');
+        h.id ||= bg.id+'Heading'; dialog.setAttribute('role','dialog'); dialog.setAttribute('aria-modal','true'); dialog.setAttribute('aria-labelledby',h.id); dialog.tabIndex=-1;
+        let previous=null;
+        new MutationObserver(()=>{
+            if(bg.classList.contains('show')) { previous=document.activeElement; (dialog.querySelector('input,select,button')||dialog).focus(); document.getElementById('appContent').inert=true; }
+            else { document.getElementById('appContent').inert=false; previous?.focus(); }
+        }).observe(bg,{attributes:true,attributeFilter:['class']});
+        dialog.addEventListener('keydown',e=>{
+            if(e.key!=='Tab') return;
+            const all=[...dialog.querySelectorAll('input,select,button,[tabindex="0"]')].filter(el=>!el.disabled && el.getClientRects().length);
+            if(!all.length) {e.preventDefault();return;}
+            if(e.shiftKey && document.activeElement===all[0]) {e.preventDefault();all.at(-1).focus();}
+            else if(!e.shiftKey && document.activeElement===all.at(-1)) {e.preventDefault();all[0].focus();}
+        });
+    });
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')closeReconcile();});
+    document.getElementById('searchTransactions').addEventListener('input',renderMonth);
+    document.querySelectorAll('#actual-body,#actual-interest,#actual-penalty').forEach(el=>el.addEventListener('input',updateActualPayment));
+}
+
 /* ============================================================
    СТАРТ
    ============================================================ */
@@ -2807,7 +2854,22 @@ document.addEventListener('keydown', e => {
         if (e.key === 'Enter') checkLogin();
     });
     document.getElementById('loginEmail').focus();
+    enhanceInterface();
+    document.getElementById('list').addEventListener('click',e=>{const b=e.target.closest('button');if(b?.dataset.editId)openEditModal(b.dataset.editId);if(b?.dataset.deleteId)removeItemWithPassword(b.dataset.deleteId);});
+    let authSequence=0;
+    firebase.auth().onAuthStateChanged(async user=>{
+        const sequence=++authSequence;
+        if(!user) { lockApp(); return; }
+        try {
+            const token=await user.getIdTokenResult();
+            if(sequence!==authSequence) return;
+            currentRole=['andrey','lera'].includes(token.claims.familyRole)?token.claims.familyRole:null;
+            if(!currentRole) { lockApp(); document.getElementById('loginError').textContent='Учётная запись не подключена к семье. Настройте familyRole в Firebase.'; return; }
+            unlockApp();
+        } catch(e) { if(sequence!==authSequence)return; lockApp(); document.getElementById('loginError').textContent='Не удалось проверить доступ. Повторите вход.'; }
+    });
 })();
+}
 </script>
 </body>
 </html>
