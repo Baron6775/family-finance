@@ -1,0 +1,13 @@
+{
+  "name": "family-finance-admin-tools",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local-only Firebase administration utilities for Family Finance",
+  "scripts": {
+    "test": "node --test *.test.cjs"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}
+
