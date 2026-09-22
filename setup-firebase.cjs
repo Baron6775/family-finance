@@ -15,7 +15,7 @@ function usage() {
     'Usage:',
     '  node setup-firebase.cjs seed --replace --date 2026-09-22          # dry run',
     '  node setup-firebase.cjs seed --replace --date 2026-09-22 --apply  # writes Firestore',
-    '  node setup-firebase.cjs role --uid <Firebase UID> --role andrey|lera --apply',
+    '  node setup-firebase.cjs role --email <account email> --role andrey|lera --apply',
     '',
     'For operations that contact Firebase, set FIREBASE_SERVICE_ACCOUNT_PATH to a local Service Account JSON file.'
   ].join('\n');
@@ -28,7 +28,7 @@ function parseArgs(argv) {
     const token = rest[index];
     if (token === '--apply') options.apply = true;
     else if (token === '--replace') options.replace = true;
-    else if (token === '--date' || token === '--uid' || token === '--role') {
+    else if (token === '--date' || token === '--uid' || token === '--email' || token === '--role') {
       options[token.slice(2)] = rest[++index];
     } else {
       throw new Error(`Unknown argument: ${token}`);
@@ -210,10 +210,13 @@ async function runSeed({ apply, replace, date, seedPath, backupDir, db, now }) {
 
 async function runRole(options) {
   if (!options.apply) throw new Error('role requires --apply.');
-  if (!options.uid || !['andrey', 'lera'].includes(options.role)) throw new Error('role requires --uid and --role andrey|lera.');
+  if ((!options.uid && !options.email) || (options.uid && options.email) || !['andrey', 'lera'].includes(options.role)) {
+    throw new Error('role requires exactly one of --uid or --email, plus --role andrey|lera.');
+  }
   const admin = createAdmin();
-  await admin.auth().setCustomUserClaims(options.uid, { familyRole: options.role });
-  return { uid: options.uid, familyRole: options.role };
+  const user = options.uid ? await admin.auth().getUser(options.uid) : await admin.auth().getUserByEmail(options.email);
+  await admin.auth().setCustomUserClaims(user.uid, { ...(user.customClaims || {}), familyRole: options.role });
+  return { uid: user.uid, email: user.email, familyRole: options.role };
 }
 
 async function main() {
