@@ -2863,8 +2863,13 @@ function enhanceInterface() {
         try {
             const token=await user.getIdTokenResult();
             if(sequence!==authSequence) return;
-            currentRole=['andrey','lera'].includes(token.claims.familyRole)?token.claims.familyRole:null;
-            if(!currentRole) { lockApp(); document.getElementById('loginError').textContent='Учётная запись не подключена к семье. Настройте familyRole в Firebase.'; return; }
+            const claimedRole=['andrey','lera'].includes(token.claims.familyRole) ? token.claims.familyRole : null;
+            // Compatibility for the two existing accounts while custom claims are being configured.
+            // Claims override the legacy email prefix whenever they are present.
+            const email=(user.email || '').toLowerCase();
+            const legacyRole=email.startsWith('andrey') ? 'andrey' : email.startsWith('lera') ? 'lera' : null;
+            currentRole=claimedRole || legacyRole;
+            if(!currentRole) { lockApp(); document.getElementById('loginError').textContent='Эта учётная запись не подключена к семье.'; return; }
             unlockApp();
         } catch(e) { if(sequence!==authSequence)return; lockApp(); document.getElementById('loginError').textContent='Не удалось проверить доступ. Повторите вход.'; }
     });
