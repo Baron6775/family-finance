@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
-const { EXPECTED_LOAN_IDS, loadSeed, runSeed, validateSeed } = require('./setup-firebase.cjs');
+const { EXPECTED_LOAN_IDS, loadSeed, runSeed, validateSeed, parseArgs } = require('./setup-firebase.cjs');
 
 class FakeSnapshot {
   constructor(id, data) { this.id = id; this._data = data; this.exists = data !== undefined; }
@@ -106,5 +106,12 @@ test('a backup failure leaves Firestore untouched', async () => {
 test('seed refuses a missing replace flag or invalid date', async () => {
   await assert.rejects(() => runSeed({ apply: false, replace: false, date: '2026-09-22', seedPath }), /--replace/);
   await assert.rejects(() => runSeed({ apply: false, replace: true, date: '22-09-2026', seedPath }), /YYYY-MM-DD/);
+});
+
+test('role parsing accepts one account email', () => {
+  const options = parseArgs(['role', '--email', 'lera@example.test', '--role', 'lera', '--apply']);
+  assert.equal(options.email, 'lera@example.test');
+  assert.equal(options.role, 'lera');
+  assert.equal(options.apply, true);
 });
 
