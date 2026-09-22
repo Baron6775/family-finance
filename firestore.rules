@@ -1,0 +1,75 @@
+rules_version = '2';
+// Review and test in Firebase Emulator before deployment. One family per project.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function member() { return request.auth != null && request.auth.token.familyRole in ['andrey', 'lera']; }
+    function admin() { return member() && request.auth.token.familyRole == 'andrey'; }
+    function money(n) { return n is number && n >= 0 && n <= 1000000000000; }
+    function near(a,b) { return a-b < 0.001 && b-a < 0.001; }
+    function transactionValid(d) {
+      return d.keys().hasAll(['date','desc','amount','type','owner','category','createdAt'])
+        && d.date is string && d.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && d.desc is string && d.desc.size() > 0 && d.desc.size() <= 300
+        && d.category is string && d.category.size() <= 100
+        && money(d.amount) && d.amount > 0 && d.createdAt is number
+        && d.owner in ['andrey','lera']
+        && d.type in ['income','expense','debt-in','debt-out','debt-give','debt-get','loan-payment','transfer']
+        && (d.type != 'transfer' || (d.recipient in ['andrey','lera'] && d.recipient != d.owner));
+    }
+    function loanValid(d) {
+      return money(d.bodyDebt) && money(d.interestRemaining) && money(d.penalty)
+        && money(d.monthlyPayment) && d.revision is int && d.revision > 0
+        && near(d.totalRemaining,d.bodyDebt+d.interestRemaining+d.penalty);
+    }
+    function linkedPayment(id,d) {
+      let l=getAfter(/databases/$(database)/documents/loans/$(d.loanId)).data;
+      let old=get(/databases/$(database)/documents/loans/$(d.loanId)).data;
+      return d.breakdown.keys().hasOnly(['body','interest','penalty'])
+        && money(d.breakdown.body) && money(d.breakdown.interest) && money(d.breakdown.penalty)
+        && near(d.amount,d.breakdown.body+d.breakdown.interest+d.breakdown.penalty)
+        && l.lastTransactionId == id && l.revision == d.loanRevision && l.revision == old.revision+1
+        && near(l.bodyDebt,old.bodyDebt-d.breakdown.body)
+        && near(l.interestRemaining,old.interestRemaining-d.breakdown.interest)
+        && near(l.penalty,old.penalty-d.breakdown.penalty);
+    }
+    match /transactions/{id} {
+      allow read: if member();
+      allow create: if member() && transactionValid(request.resource.data)
+        && (request.resource.data.type != 'loan-payment' || linkedPayment(id,request.resource.data));
+      allow update: if member() && !(resource.data.type in ['loan-payment','transfer'])
+        && !(request.resource.data.type in ['loan-payment','transfer']) && transactionValid(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if admin() && resource.data.type != 'loan-payment';
+    }
+    match /accounts/main {
+      allow read: if member();
+      allow create, update: if admin() && request.resource.data.keys().hasOnly(['andrey','lera'])
+        && (!('andrey' in request.resource.data) || (request.resource.data.andrey is number && request.resource.data.andrey >= -1000000000000 && request.resource.data.andrey <= 1000000000000))
+        && (!('lera' in request.resource.data) || (request.resource.data.lera is number && request.resource.data.lera >= -1000000000000 && request.resource.data.lera <= 1000000000000));
+      allow delete: if false;
+    }
+    match /loans/{id} {
+      allow read: if member();
+      allow create: if admin() && loanValid(request.resource.data);
+      allow update: if member() && loanValid(request.resource.data)
+        && request.resource.data.revision == resource.data.revision+1
+        && (admin() || (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['bodyDebt','interestRemaining','penalty','totalRemaining','monthlyPayment','breakdownVerified','nextPaymentBreakdown','lastPaymentDate','revision','lastTransactionId'])
+          && !exists(/databases/$(database)/documents/transactions/$(request.resource.data.lastTransactionId))
+          && getAfter(/databases/$(database)/documents/transactions/$(request.resource.data.lastTransactionId)).data.loanId == id
+          && (request.resource.data.monthlyPayment == resource.data.monthlyPayment || (request.resource.data.totalRemaining == 0 && request.resource.data.monthlyPayment == 0))
+          && linkedPayment(request.resource.data.lastTransactionId,
+            getAfter(/databases/$(database)/documents/transactions/$(request.resource.data.lastTransactionId)).data)
+        ));
+      allow delete: if false;
+    }
+    match /loanReconciliations/{id} {
+      allow read: if admin();
+      allow create: if admin() && request.resource.data.loanId is string
+        && request.resource.data.after == getAfter(/databases/$(database)/documents/loans/$(request.resource.data.loanId)).data;
+      allow update, delete: if false;
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}
+
