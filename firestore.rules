@@ -1,3 +1,4 @@
+Attempting to perform the InitializeDefaultDrives operation on the 'FileSystem' provider failed.
 rules_version = '2';
 // Review and test in Firebase Emulator before deployment. One family per project.
 service cloud.firestore {
@@ -14,6 +15,7 @@ service cloud.firestore {
         && money(d.amount) && d.amount > 0 && d.createdAt is number
         && d.owner in ['andrey','lera']
         && d.type in ['income','expense','debt-in','debt-out','debt-give','debt-get','loan-payment','transfer']
+        && (!('paymentSource' in d) || d.paymentSource in ['bank','cash'])
         && (d.type != 'transfer' || (d.recipient in ['andrey','lera'] && d.recipient != d.owner));
     }
     function loanValid(d) {
@@ -43,9 +45,10 @@ service cloud.firestore {
     }
     match /accounts/main {
       allow read: if member();
-      allow create, update: if admin() && request.resource.data.keys().hasOnly(['andrey','lera'])
+      allow create, update: if admin() && request.resource.data.keys().hasOnly(['andrey','lera','cash'])
         && (!('andrey' in request.resource.data) || (request.resource.data.andrey is number && request.resource.data.andrey >= -1000000000000 && request.resource.data.andrey <= 1000000000000))
-        && (!('lera' in request.resource.data) || (request.resource.data.lera is number && request.resource.data.lera >= -1000000000000 && request.resource.data.lera <= 1000000000000));
+        && (!('lera' in request.resource.data) || (request.resource.data.lera is number && request.resource.data.lera >= -1000000000000 && request.resource.data.lera <= 1000000000000))
+        && (!('cash' in request.resource.data) || (request.resource.data.cash is number && request.resource.data.cash >= -1000000000000 && request.resource.data.cash <= 1000000000000));
       allow delete: if false;
     }
     match /loans/{id} {
