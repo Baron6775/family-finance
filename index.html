@@ -1,3 +1,4 @@
+Attempting to perform the InitializeDefaultDrives operation on the 'FileSystem' provider failed.
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -126,6 +127,7 @@
     }
     .account-card.andrey { border-top-color: #4c8dff; }
     .account-card.lera { border-top-color: #ff8ddc; }
+    .account-card.cash { border-top-color: #f7c948; }
     .account-card h3 { margin: 0 0 12px; font-size: 15px; color: #ffffff; display: flex; align-items: center; gap: 8px; }
     .account-card .balance { font-size: 26px; font-weight: 700; color: #ffffff; font-variant-numeric: tabular-nums; margin-bottom: 4px; word-break: break-word; }
     .account-card .balance.positive { color: #4cff9a; }
@@ -171,6 +173,7 @@
     .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; }
     .badge.andrey { background: rgba(76, 141, 255, 0.15); color: #6ba8ff; border: 1px solid rgba(76, 141, 255, 0.35); }
     .badge.lera { background: rgba(255, 141, 220, 0.15); color: #ff8ddc; border: 1px solid rgba(255, 141, 220, 0.35); }
+    .badge.cash { background: rgba(247, 201, 72, 0.14); color: #f7c948; border: 1px solid rgba(247, 201, 72, 0.35); }
     .badge.shared { background: rgba(255, 200, 76, 0.15); color: #ffc84c; border: 1px solid rgba(255, 200, 76, 0.35); }
     .badge.income { background: rgba(76, 255, 154, 0.15); color: #4cff9a; border: 1px solid rgba(76, 255, 154, 0.35); }
     .badge.expense { background: rgba(255, 107, 107, 0.15); color: #ff6b6b; border: 1px solid rgba(255, 107, 107, 0.35); }
@@ -483,10 +486,22 @@ button {min-height:44px;border-radius:10px;} button:focus-visible,a:focus-visibl
                 <button class="sm" onclick="setAccountBalance('lera')">Задать</button>
             </div>
         </div>
+        <div class="account-card cash">
+            <h3>💵 Общая наличка</h3>
+            <div class="balance" id="accCashBalance">0 ₽</div>
+            <div class="balance-sub" id="accCashSub">начальный: 0 ₽</div>
+            <div class="change-row hidden">
+                <div class="field">
+                    <label>Начальный остаток</label>
+                    <input id="accCashInput" type="number" placeholder="0" step="0.01" inputmode="decimal">
+                </div>
+                <button class="sm" onclick="setAccountBalance('cash')">Задать</button>
+            </div>
+        </div>
     </div>
 
     <div class="account-total">
-        <span class="label">Итого на счетах</span>
+        <span class="label">Всего денег</span>
         <span class="value" id="accTotal">0 ₽</span>
     </div>
 </div>
@@ -505,6 +520,13 @@ button {min-height:44px;border-radius:10px;} button:focus-visible,a:focus-visibl
             <select id="owner">
                 <option value="andrey">Андрей</option>
                 <option value="lera">Леруська</option>
+            </select>
+        </div>
+        <div class="field">
+            <label>Оплата</label>
+            <select id="paymentSource">
+                <option value="bank">Банковский счёт</option>
+                <option value="cash">Общая наличка</option>
             </select>
         </div>
         <div class="field">
@@ -848,6 +870,13 @@ button {min-height:44px;border-radius:10px;} button:focus-visible,a:focus-visibl
                 <select id="eOwner">
                     <option value="andrey">Андрей</option>
                     <option value="lera">Леруська</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Оплата</label>
+                <select id="ePaymentSource">
+                    <option value="bank">Банковский счёт</option>
+                    <option value="cash">Общая наличка</option>
                 </select>
             </div>
             <div class="field">
@@ -1376,7 +1405,7 @@ const LOANS = [
    СОСТОЯНИЕ
    ============================================================ */
 let items = [];
-let accounts = { andrey: 0, lera: 0 };
+let accounts = { andrey: 0, lera: 0, cash: 0 };
 let currentYear, currentMonth;
 let ownerFilter = "all";
 let catKind = "expense";
@@ -1400,6 +1429,7 @@ const MONTHS = ['Январь','Февраль','Март','Апрель','Ма�
                 'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 
 const OWNER_LABEL = { andrey: 'Андрей', lera: 'Леруська', shared: 'Всего семьи' };
+const PAYMENT_SOURCE_LABEL = { bank: 'Банк', cash: 'Наличка' };
 
 const TYPE_LABEL = {
     transfer: 'Перевод',
@@ -1583,7 +1613,8 @@ function renderAccounts() {
     updateAccountPermissions();
     const aC = calcCurrentAccount('andrey');
     const lC = calcCurrentAccount('lera');
-    const total = aC + lC;
+    const cashC = calcCurrentAccount('cash');
+    const total = aC + lC + cashC;
 
     const elA = document.getElementById('accAndreyBalance');
     elA.textContent = fmt(aC);
@@ -1592,9 +1623,13 @@ function renderAccounts() {
     const elL = document.getElementById('accLeraBalance');
     elL.textContent = fmt(lC);
     elL.className = 'balance ' + (lC >= 0 ? 'positive' : 'negative');
+    const elCash = document.getElementById('accCashBalance');
+    elCash.textContent = fmt(cashC);
+    elCash.className = 'balance ' + (cashC >= 0 ? 'positive' : 'negative');
 
     document.getElementById('accAndreySub').textContent = 'начальный: ' + fmt(accounts.andrey || 0);
     document.getElementById('accLeraSub').textContent = 'начальный: ' + fmt(accounts.lera || 0);
+    document.getElementById('accCashSub').textContent = 'начальный: ' + fmt(accounts.cash || 0);
     document.getElementById('accTotal').textContent = fmt(total);
     document.getElementById('accTotal').style.color = total >= 0 ? '#4cff9a' : '#ff6b6b';
 }
@@ -1612,6 +1647,7 @@ function openEditModal(id) {
 
     document.getElementById('eDate').value = it.date || todayISO();
     document.getElementById('eOwner').value = it.owner || 'andrey';
+    document.getElementById('ePaymentSource').value = it.paymentSource === 'cash' ? 'cash' : 'bank';
     document.getElementById('eType').value = it.type || 'expense';
     document.getElementById('eCategory').value = it.category || 'Прочее';
     document.getElementById('eDesc').value = it.desc || '';
@@ -2156,7 +2192,7 @@ function renderMonth() {
                 <tr>
                     <td data-label="Дата">${formatDateRu(it.date)}</td>
                     <td data-label="Описание">${descText}</td>
-                    <td data-label="Кто"><span class="badge ${escapeHtml(it.owner)}">${escapeHtml(OWNER_LABEL[it.owner] || it.owner)}</span></td>
+                    <td data-label="Кто"><span class="badge ${escapeHtml(it.owner)}">${escapeHtml(OWNER_LABEL[it.owner] || it.owner)}</span>${it.paymentSource === 'cash' ? ' <span class="badge cash">Наличка</span>' : ''}</td>
                     <td data-label="Категория">
                         <span class="badge ${TYPE_BADGE[it.type] || ''}" style="margin-right:4px">${escapeHtml(TYPE_LABEL[it.type] || it.type)}</span>
                         ${escapeHtml(it.category)}
@@ -2511,7 +2547,10 @@ function calcCurrentAccount(owner) {
         if(it.type === 'transfer') {
             if(it.owner === owner) cents -= value;
             if(it.recipient === owner) cents += value;
-        } else if(it.owner === owner) {
+        } else if(it.paymentSource === 'cash' && owner === 'cash') {
+            if(isIncomeLike(it.type)) cents += value;
+            else if(isExpenseLike(it.type)) cents -= value;
+        } else if(it.paymentSource !== 'cash' && it.owner === owner) {
             if(isIncomeLike(it.type)) cents += value;
             else if(isExpenseLike(it.type)) cents -= value;
         }
@@ -2577,7 +2616,7 @@ function subscribe() {
     const failed = e => { dataReady=false; setStatus('Не удалось загрузить данные: ' + e.message,'err'); };
     unsubscribeTransactions = db.collection(COLLECTION).orderBy('date','asc').onSnapshot(snap => {
         items = snap.docs.map(d => ({...d.data(),id:d.id})).filter(it => {
-            try { F.date(it.date); F.amount(it.amount); return Object.hasOwn(TYPE_LABEL,it.type) && ['andrey','lera','shared'].includes(it.owner) && (it.type!=='transfer' || (['andrey','lera'].includes(it.owner) && ['andrey','lera'].includes(it.recipient) && it.owner!==it.recipient)); } catch { return false; }
+            try { F.date(it.date); F.amount(it.amount); return Object.hasOwn(TYPE_LABEL,it.type) && ['andrey','lera','shared'].includes(it.owner) && (!it.paymentSource || Object.hasOwn(PAYMENT_SOURCE_LABEL,it.paymentSource)) && (it.type!=='transfer' || (['andrey','lera'].includes(it.owner) && ['andrey','lera'].includes(it.recipient) && it.owner!==it.recipient)); } catch { return false; }
         });
         ready('transactions'); renderAll();
         if (items.length !== snap.docs.length) setStatus('Есть некорректные записи: они исключены из расчётов. Проверьте данные в Firebase.','err');
@@ -2586,7 +2625,7 @@ function subscribe() {
     },failed);
     unsubscribeAccounts = db.collection(ACCOUNTS_COLLECTION).doc('main').onSnapshot(doc => {
         const data=doc.exists ? doc.data() : {};
-        accounts={andrey:Number(data.andrey)||0,lera:Number(data.lera)||0};
+        accounts={andrey:Number(data.andrey)||0,lera:Number(data.lera)||0,cash:Number(data.cash)||0};
         ready('accounts'); renderAccounts();
     },failed);
     unsubscribeLoans = db.collection('loans').onSnapshot(snap => {
@@ -2601,7 +2640,7 @@ function subscribe() {
 function lockApp() {
     [unsubscribeTransactions,unsubscribeAccounts,unsubscribeLoans].forEach(fn => fn && fn());
     unsubscribeTransactions=unsubscribeAccounts=unsubscribeLoans=null;
-    items=[]; accounts={andrey:0,lera:0}; dataReady=false; currentRole=null;
+    items=[]; accounts={andrey:0,lera:0,cash:0}; dataReady=false; currentRole=null;
     LOANS.splice(0,LOANS.length,...JSON.parse(JSON.stringify(initialLoans)));
     document.querySelectorAll('.modal-bg.show').forEach(m=>m.classList.remove('show'));
     document.body.style.overflow='';
@@ -2616,9 +2655,10 @@ function readEntry(edit=false) {
     const get = id => document.getElementById(id).value.trim();
     const data={date:F.date(get(edit?'eDate':'dateInput')),desc:get(edit?'eDesc':'desc'),
         amount:F.amount(get(edit?'eAmount':'amount')),type:get(edit?'eType':'type'),
-        category:get(edit?'eCategory':'category'),owner:get(edit?'eOwner':'owner')};
+        category:get(edit?'eCategory':'category'),owner:get(edit?'eOwner':'owner'),paymentSource:get(edit?'ePaymentSource':'paymentSource')};
     if(!data.desc || data.desc.length>300) throw new Error('Описание должно содержать от 1 до 300 символов.');
     if(!['andrey','lera'].includes(data.owner) || !Object.hasOwn(TYPE_LABEL,data.type) || ['loan-payment','transfer'].includes(data.type)) throw new Error('Используйте специальную форму кредита или перевода.');
+    if(!Object.hasOwn(PAYMENT_SOURCE_LABEL,data.paymentSource)) throw new Error('Выберите счёт оплаты.');
     if(isDebtType(data.type)) { data.counterparty=get(edit?'eCounterparty':'counterparty'); if(!data.counterparty) throw new Error('Укажите контрагента.'); }
     return data;
 }
@@ -2651,8 +2691,8 @@ function setAccountBalance(owner) {
     }
     return withWrite(async()=>{
         if(getCurrentUserRole() !== 'andrey') throw new Error('Начальные остатки может задавать только Андрей.');
-        if(!['andrey','lera'].includes(owner)) throw new Error('Неизвестный счёт.');
-        const input=document.getElementById(owner==='andrey'?'accAndreyInput':'accLeraInput');
+        if(!['andrey','lera','cash'].includes(owner)) throw new Error('Неизвестный счёт.');
+        const input=document.getElementById({andrey:'accAndreyInput',lera:'accLeraInput',cash:'accCashInput'}[owner]);
         const n=Number(input.value);
         if(!input.value.trim() || !Number.isFinite(n) || Math.abs(n)>1e12 || Math.abs(n*100-Math.round(n*100))>0.001) throw new Error('Введите начальный остаток с точностью до копеек.');
         await db.collection(ACCOUNTS_COLLECTION).doc('main').set({[owner]:F.money(n)},{merge:true});
