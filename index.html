@@ -507,6 +507,7 @@ button {min-height:44px;border-radius:10px;} button:focus-visible,a:focus-visibl
 </div>
 
 <div class="card"><h2>Перевод между счетами</h2><p class="section-hint">Перемещение денег внутри семьи: общий остаток, доходы и расходы не меняются. Это запись в учёте, а не банковский перевод.</p><div class="row"><div class="field"><label for="transferFrom">Направление</label><select id="transferFrom"><option value="andrey">Андрей → Леруська</option><option value="lera">Леруська → Андрей</option></select></div><div class="field"><label for="transferDate">Дата перевода</label><input id="transferDate" type="date"></div><div class="field"><label for="transferAmount">Сумма перевода, ₽</label><input id="transferAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00"></div><button onclick="transferMoney()">Записать перевод</button></div></div>
+<div class="card"><h2>💵 Внести наличные на счёт</h2><p class="section-hint">Наличка уменьшится, а выбранный банковский счёт увеличится на ту же сумму. В журнале сохранится, кто внёс деньги.</p><div class="row"><div class="field"><label for="cashDepositOwner">Кто внёс</label><select id="cashDepositOwner"><option value="andrey">Андрей</option><option value="lera">Леруська</option></select></div><div class="field"><label for="cashDepositRecipient">На чей счёт</label><select id="cashDepositRecipient"><option value="andrey">Счёт Андрея</option><option value="lera">Счёт Леруськи</option></select></div><div class="field"><label for="cashDepositDate">Дата</label><input id="cashDepositDate" type="date"></div><div class="field"><label for="cashDepositAmount">Сумма, ₽</label><input id="cashDepositAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00"></div><button onclick="depositCashToBank()">Внести на счёт</button></div></div>
 <!-- ===== Добавление записи ===== -->
 <div class="card">
     <h2>Новая операция</h2><p class="section-hint">Запишите поступление или расход — остатки обновятся автоматически.</p>
@@ -1432,7 +1433,7 @@ const OWNER_LABEL = { andrey: 'Андрей', lera: 'Леруська', shared: 
 const PAYMENT_SOURCE_LABEL = { bank: 'Банк', cash: 'Наличка' };
 
 const TYPE_LABEL = {
-    transfer: 'Перевод',
+    transfer: 'Перевод', 'cash-deposit': 'Внесение наличных',
     income: 'Доход', expense: 'Расход',
     'debt-in': 'Взял в долг', 'debt-out': 'Вернул долг',
     'debt-give': 'Дал в долг', 'debt-get': 'Получил долг',
@@ -1440,7 +1441,7 @@ const TYPE_LABEL = {
 };
 
 const TYPE_BADGE = {
-    transfer: 'shared',
+    transfer: 'shared', 'cash-deposit': 'shared',
     income: 'income', expense: 'expense',
     'debt-in': 'debt-in', 'debt-out': 'debt-out',
     'debt-give': 'debt-out', 'debt-get': 'debt-in',
@@ -1642,7 +1643,7 @@ function renderAccounts() {
 function openEditModal(id) {
     const it = items.find(x => x.id === id);
     if (!it) return;
-    if(['loan-payment','transfer'].includes(it.type)) {setStatus('Перевод можно удалить и создать заново; кредитный платёж требует сверки.', 'err');return;}
+    if(['loan-payment','transfer','cash-deposit'].includes(it.type)) {setStatus('Перевод или внесение наличных можно удалить и создать заново; кредитный платёж требует сверки.', 'err');return;}
     editingId = id;
 
     document.getElementById('eDate').value = it.date || todayISO();
@@ -2151,7 +2152,7 @@ function renderMonth() {
     const query=document.getElementById('searchTransactions').value.trim().toLocaleLowerCase('ru');
     if(query) monthItems=monthItems.filter(it=>[it.desc,it.category,it.counterparty].some(v=>String(v||'').toLocaleLowerCase('ru').includes(query)));
 
-    if (ownerFilter !== 'all') monthItems = monthItems.filter(it => it.owner === ownerFilter || (it.type==='transfer' && it.recipient===ownerFilter));
+    if (ownerFilter !== 'all') monthItems = monthItems.filter(it => it.owner === ownerFilter || ((it.type==='transfer' || it.type==='cash-deposit') && it.recipient===ownerFilter));
 
     monthItems.sort((a, b) => {
         if (a.date !== b.date) return (b.date || '').localeCompare(a.date || '');
@@ -2169,6 +2170,7 @@ function renderMonth() {
 
             const prefix =
                 it.type === 'transfer' ? '↔' :
+                it.type === 'cash-deposit' ? '↗' :
                 it.type === 'income' ? '+' :
                 it.type === 'expense' ? '−' :
                 it.type === 'debt-in' ? '↓' :
@@ -2201,7 +2203,7 @@ function renderMonth() {
                         ${prefix} ${fmt(it.amount)}
                     </td>
                     <td class="actions">
-                        ${isLoan ? '<span class="muted">Связан с кредитом</span>' : it.type==='transfer' ? '<span class="muted">Между счетами</span>' : `<button class="edit" data-edit-id="${escapeHtml(it.id)}">Изменить</button>`}
+                        ${isLoan ? '<span class="muted">Связан с кредитом</span>' : it.type==='transfer' ? '<span class="muted">Между счетами</span>' : it.type==='cash-deposit' ? '<span class="muted">Из налички</span>' : `<button class="edit" data-edit-id="${escapeHtml(it.id)}">Изменить</button>`}
                         ${deleteBtn}
                     </td>
                 </tr>
@@ -2544,7 +2546,10 @@ function calcCurrentAccount(owner) {
     let cents = Math.round((accounts[owner] || 0) * 100);
     items.forEach(it => {
         const value = Math.round(Number(it.amount || 0) * 100);
-        if(it.type === 'transfer') {
+        if(it.type === 'cash-deposit') {
+            if(owner === 'cash') cents -= value;
+            if(it.recipient === owner) cents += value;
+        } else if(it.type === 'transfer') {
             if(it.owner === owner) cents -= value;
             if(it.recipient === owner) cents += value;
         } else if(it.paymentSource === 'cash' && owner === 'cash') {
@@ -2580,6 +2585,24 @@ function transferMoney() {
     });
 }
 
+function cashDepositData(owner, recipient, value, date) {
+    if(!['andrey','lera'].includes(owner) || !['andrey','lera'].includes(recipient)) throw new Error('Укажите, кто внёс наличные и на чей счёт.');
+    F.date(date);
+    if(date > todayISO()) throw new Error('Дата внесения не может быть в будущем.');
+    return {date,owner,recipient,amount:F.amount(value),type:'cash-deposit',paymentSource:'cash',category:'Внесение наличных',
+        desc:`Наличка → счёт ${OWNER_LABEL[recipient]}`,createdAt:Date.now()};
+}
+
+function depositCashToBank() {
+    return withWrite(async()=>{
+        const data=cashDepositData(document.getElementById('cashDepositOwner').value,document.getElementById('cashDepositRecipient').value,document.getElementById('cashDepositAmount').value,document.getElementById('cashDepositDate').value);
+        await db.collection(COLLECTION).add(data);
+        document.getElementById('cashDepositAmount').value='';
+        currentYear=Number(data.date.slice(0,4));currentMonth=Number(data.date.slice(5,7))-1;
+        renderAll();
+    });
+}
+
 function updateAccountPermissions() {
     const canEdit = getCurrentUserRole() === 'andrey';
     document.querySelectorAll('.account-card .change-row').forEach(row => {
@@ -2592,7 +2615,7 @@ async function withWrite(action) {
     if (writesPending) return;
     if (!dataReady || !currentRole) { setStatus('Дождитесь загрузки данных и проверки доступа.', 'err'); return; }
     writesPending = true;
-    const buttons = [...document.querySelectorAll('button')].filter(b => /addItem|saveEdit|confirm.*Payment|confirmPrepay|setAccountBalance|transferMoney/.test(b.getAttribute('onclick') || ''));
+    const buttons = [...document.querySelectorAll('button')].filter(b => /addItem|saveEdit|confirm.*Payment|confirmPrepay|setAccountBalance|transferMoney|depositCashToBank/.test(b.getAttribute('onclick') || ''));
     buttons.forEach(b => b.disabled = true);
     setStatus('Сохранение…');
     try { await action(); setStatus('Сохранено', 'ok'); }
@@ -2616,7 +2639,7 @@ function subscribe() {
     const failed = e => { dataReady=false; setStatus('Не удалось загрузить данные: ' + e.message,'err'); };
     unsubscribeTransactions = db.collection(COLLECTION).orderBy('date','asc').onSnapshot(snap => {
         items = snap.docs.map(d => ({...d.data(),id:d.id})).filter(it => {
-            try { F.date(it.date); F.amount(it.amount); return Object.hasOwn(TYPE_LABEL,it.type) && ['andrey','lera','shared'].includes(it.owner) && (!it.paymentSource || Object.hasOwn(PAYMENT_SOURCE_LABEL,it.paymentSource)) && (it.type!=='transfer' || (['andrey','lera'].includes(it.owner) && ['andrey','lera'].includes(it.recipient) && it.owner!==it.recipient)); } catch { return false; }
+            try { F.date(it.date); F.amount(it.amount); return Object.hasOwn(TYPE_LABEL,it.type) && ['andrey','lera','shared'].includes(it.owner) && (!it.paymentSource || Object.hasOwn(PAYMENT_SOURCE_LABEL,it.paymentSource)) && (it.type!=='transfer' || (['andrey','lera'].includes(it.owner) && ['andrey','lera'].includes(it.recipient) && it.owner!==it.recipient)) && (it.type!=='cash-deposit' || (it.paymentSource==='cash' && ['andrey','lera'].includes(it.recipient))); } catch { return false; }
         });
         ready('transactions'); renderAll();
         if (items.length !== snap.docs.length) setStatus('Есть некорректные записи: они исключены из расчётов. Проверьте данные в Firebase.','err');
@@ -2676,7 +2699,7 @@ function addItem() {
 function saveEdit() {
     return withWrite(async()=>{
         const it=items.find(x=>x.id===editingId);
-        if(!it || ['loan-payment','transfer'].includes(it.type)) throw new Error('Кредитные платежи и переводы нельзя менять как обычную запись.');
+        if(!it || ['loan-payment','transfer','cash-deposit'].includes(it.type)) throw new Error('Кредитные платежи, переводы и внесение наличных нельзя менять как обычную запись.');
         const data=readEntry(true);
         if(!data.counterparty) data.counterparty=firebase.firestore.FieldValue.delete();
         await db.collection(COLLECTION).doc(editingId).update(data);
