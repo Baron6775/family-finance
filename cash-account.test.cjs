@@ -6,7 +6,7 @@ const vm = require('node:vm');
 const test = require('node:test');
 
 const html = fs.readFileSync('./index.html', 'utf8');
-const source = html.match(/^function calcCurrentAccount\([^]*?^\}/m)[0];
+const extract = (name) => html.match(new RegExp('^function ' + name + '\\([^]*?^\\}', 'm'))[0];
 
 test('cash operations affect only the shared cash balance while retaining their author', () => {
   const context = vm.createContext({
@@ -20,9 +20,22 @@ test('cash operations affect only the shared cash balance while retaining their 
     isIncomeLike: (type) => ['income', 'debt-in', 'debt-get'].includes(type),
     isExpenseLike: (type) => ['expense', 'debt-out', 'debt-give', 'loan-payment'].includes(type)
   });
-  vm.runInContext(source, context);
+  vm.runInContext(extract('calcCurrentAccount'), context);
   assert.equal(context.calcCurrentAccount('andrey'), 960);
   assert.equal(context.calcCurrentAccount('lera'), 510);
   assert.equal(context.calcCurrentAccount('cash'), 160);
+});
+
+test('cash deposit preserves the total while moving cash to the selected bank account', () => {
+  const context = vm.createContext({
+    F: { date: (value) => value, amount: (value) => Number(value) },
+    OWNER_LABEL: { andrey: 'Андрей', lera: 'Леруська' },
+    todayISO: () => '2026-10-03'
+  });
+  vm.runInContext(extract('cashDepositData'), context);
+  const record = context.cashDepositData('andrey', 'lera', '250.50', '2026-10-03');
+  assert.deepEqual({ type: record.type, owner: record.owner, recipient: record.recipient, paymentSource: record.paymentSource, amount: record.amount }, {
+    type: 'cash-deposit', owner: 'andrey', recipient: 'lera', paymentSource: 'cash', amount: 250.5
+  });
 });
 
