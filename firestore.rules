@@ -14,9 +14,10 @@ service cloud.firestore {
         && d.category is string && d.category.size() <= 100
         && money(d.amount) && d.amount > 0 && d.createdAt is number
         && d.owner in ['andrey','lera']
-        && d.type in ['income','expense','debt-in','debt-out','debt-give','debt-get','loan-payment','transfer']
+        && d.type in ['income','expense','debt-in','debt-out','debt-give','debt-get','loan-payment','transfer','cash-deposit']
         && (!('paymentSource' in d) || d.paymentSource in ['bank','cash'])
-        && (d.type != 'transfer' || (d.recipient in ['andrey','lera'] && d.recipient != d.owner));
+        && (d.type != 'transfer' || (d.recipient in ['andrey','lera'] && d.recipient != d.owner))
+        && (d.type != 'cash-deposit' || (d.paymentSource == 'cash' && d.recipient in ['andrey','lera']));
     }
     function loanValid(d) {
       return money(d.bodyDebt) && money(d.interestRemaining) && money(d.penalty)
