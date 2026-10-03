@@ -1,3 +1,4 @@
+Attempting to perform the InitializeDefaultDrives operation on the 'FileSystem' provider failed.
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const vm=require('node:vm');
@@ -21,7 +22,7 @@ test('Lera and unauthenticated users cannot see or use either balance editor',as
  }
 });
 test('Andrey can edit initial balances for either account',async()=>{
- for(const owner of ['andrey','lera']) {
+ for(const owner of ['andrey','lera','cash']) {
    const s=setup('andrey');s.context.updateAccountPermissions();
    assert.ok(s.rows.every(row=>!row.hidden && row.controls.every(c=>!c.disabled)));
    await s.context.setAccountBalance(owner);assert.equal(s.writes.length,1);assert.equal(s.writes[0][owner],123.45);
