@@ -1,4 +1,3 @@
-Attempting to perform the InitializeDefaultDrives operation on the 'FileSystem' provider failed.
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -537,6 +536,7 @@ button {min-height:44px;border-radius:10px;} button:focus-visible,a:focus-visibl
                 <option value="income">Доход</option>
                 <option value="debt-in">Взял в долг (я должен)</option>
                 <option value="debt-out">Вернул долг (я отдал)</option>
+                <option value="debt-opening-owe">Стартовый долг (я должен, без движения денег)</option>
                 <option value="debt-give">Дал в долг (мне должны)</option>
                 <option value="debt-get">Получил долг (мне вернули)</option>
             </select>
@@ -887,6 +887,7 @@ button {min-height:44px;border-radius:10px;} button:focus-visible,a:focus-visibl
                     <option value="income">Доход</option>
                     <option value="debt-in">Взял в долг (я должен)</option>
                     <option value="debt-out">Вернул долг (я отдал)</option>
+                    <option value="debt-opening-owe">Стартовый долг (я должен, без движения денег)</option>
                     <option value="debt-give">Дал в долг (мне должны)</option>
                     <option value="debt-get">Получил долг (мне вернули)</option>
                 </select>
@@ -1436,6 +1437,7 @@ const TYPE_LABEL = {
     transfer: 'Перевод', 'cash-deposit': 'Внесение наличных',
     income: 'Доход', expense: 'Расход',
     'debt-in': 'Взял в долг', 'debt-out': 'Вернул долг',
+    'debt-opening-owe': 'Стартовый долг',
     'debt-give': 'Дал в долг', 'debt-get': 'Получил долг',
     'loan-payment': 'Платёж по кредиту'
 };
@@ -1443,7 +1445,7 @@ const TYPE_LABEL = {
 const TYPE_BADGE = {
     transfer: 'shared', 'cash-deposit': 'shared',
     income: 'income', expense: 'expense',
-    'debt-in': 'debt-in', 'debt-out': 'debt-out',
+    'debt-in': 'debt-in', 'debt-out': 'debt-out', 'debt-opening-owe': 'debt-in',
     'debt-give': 'debt-out', 'debt-get': 'debt-in',
     'loan-payment': 'loan'
 };
@@ -1476,7 +1478,7 @@ function formatTodayRu() {
 
 
 
-function isDebtType(t) { return t === 'debt-in' || t === 'debt-out' || t === 'debt-give' || t === 'debt-get'; }
+function isDebtType(t) { return t === 'debt-in' || t === 'debt-out' || t === 'debt-opening-owe' || t === 'debt-give' || t === 'debt-get'; }
 function isExpenseLike(t) { return t === 'expense' || t === 'debt-out' || t === 'debt-give' || t === 'loan-payment'; }
 function isIncomeLike(t) { return t === 'income' || t === 'debt-in' || t === 'debt-get'; }
 
@@ -1563,6 +1565,7 @@ function onTypeChange() {
     const labels = {
         'debt-in': 'У кого взял',
         'debt-out': 'Кому вернул',
+        'debt-opening-owe': 'Кому должен',
         'debt-give': 'Кому дал',
         'debt-get': 'От кого получил'
     };
@@ -1585,6 +1588,7 @@ function onEditTypeChange() {
     const labels = {
         'debt-in': 'У кого взял',
         'debt-out': 'Кому вернул',
+        'debt-opening-owe': 'Кому должен',
         'debt-give': 'Кому дал',
         'debt-get': 'От кого получил'
     };
@@ -1740,7 +1744,7 @@ function computeDebts() {
         const entry = map.get(key);
         const amt = Number(it.amount || 0);
 
-        if (it.type === 'debt-in') entry.owe += amt;
+        if (it.type === 'debt-in' || it.type === 'debt-opening-owe') entry.owe += amt;
         else if (it.type === 'debt-out') entry.owe -= amt;
         else if (it.type === 'debt-give') entry.owed += amt;
         else if (it.type === 'debt-get') entry.owed -= amt;
@@ -2175,6 +2179,7 @@ function renderMonth() {
                 it.type === 'expense' ? '−' :
                 it.type === 'debt-in' ? '↓' :
                 it.type === 'debt-out' ? '↑' :
+                it.type === 'debt-opening-owe' ? '•' :
                 it.type === 'debt-give' ? '→' :
                 it.type === 'debt-get' ? '←' :
                 isLoan ? '🏦' : '';

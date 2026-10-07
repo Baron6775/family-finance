@@ -1,4 +1,3 @@
-Attempting to perform the InitializeDefaultDrives operation on the 'FileSystem' provider failed.
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const vm=require('node:vm');

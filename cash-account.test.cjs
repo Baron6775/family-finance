@@ -1,4 +1,3 @@
-Attempting to perform the InitializeDefaultDrives operation on the 'FileSystem' provider failed.
 'use strict';
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
