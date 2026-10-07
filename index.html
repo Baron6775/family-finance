@@ -982,7 +982,7 @@ button {min-height:44px;border-radius:10px;} button:focus-visible,a:focus-visibl
         </div>
 
         <div style="font-size:12px;color:#8b929c;margin-top:8px">
-            💡 При внесении платежа автоматически создаётся расход типа «Платёж по кредиту».
+            💡 Разбивка подставлена из последней сверки. При подтверждении остаток кредита и расход обновятся автоматически; при отличии от выписки поправьте значения перед сохранением.
         </div>
 
         <div class="actions">
@@ -2767,11 +2767,11 @@ async function saveLoanOperation(id, date, owner, value, mode, enteredBreakdown)
 function openLoanPayModal(loanId) {
     const loan=LOANS.find(l=>l.id===loanId); if(!loan || loan.isPersonalDebt) return;
     activeLoanId=loanId;
-    document.getElementById('loanPayTitle').textContent=`${loan.name} · Укажите фактическую разбивку из выписки`;
+    document.getElementById('loanPayTitle').textContent=`${loan.name} · разбивка ближайшего платежа подставлена автоматически`;
     document.getElementById('loanPayDate').value=todayISO();
     document.getElementById('loanPayOwner').value=currentRole;
-    const bd=loan.breakdownVerified===false ? {body:0,interest:0,penalty:0} : loan.nextPaymentBreakdown;
-    ['body','interest','penalty'].forEach(k=>document.getElementById('actual-'+k).value=bd[k].toFixed(2));
+    const bd=loan.nextPaymentBreakdown || {body:0,interest:0,penalty:0};
+    ['body','interest','penalty'].forEach(k=>document.getElementById('actual-'+k).value=Number(bd[k] || 0).toFixed(2));
     updateActualPayment();
     document.getElementById('loanPayModal').classList.add('show'); document.body.style.overflow='hidden';
 }
