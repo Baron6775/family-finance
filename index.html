@@ -623,8 +623,12 @@ button {min-height:44px;border-radius:10px;} button:focus-visible,a:focus-visibl
             <div class="value" style="color:#ff6b6b" id="monthExpense">0 ₽</div>
         </div>
         <div class="item">
-            <div class="label">Баланс</div>
+            <div class="label">Изменение за месяц</div>
             <div class="value" id="monthBalance">0 ₽</div>
+        </div>
+        <div class="item">
+            <div class="label">На счетах сейчас</div>
+            <div class="value" id="monthActualBalance">0 ₽</div>
         </div>
     </div>
 </div>
@@ -729,21 +733,21 @@ button {min-height:44px;border-radius:10px;} button:focus-visible,a:focus-visibl
             <h3>🔵 Андрей</h3>
             <div class="line"><span class="k">Доходы</span><span class="v income" id="andreyIncome">0 ₽</span></div>
             <div class="line"><span class="k">Расходы</span><span class="v expense" id="andreyExpense">0 ₽</span></div>
-            <div class="line"><span class="k">Баланс</span><span class="v" id="andreyBalance">0 ₽</span></div>
+            <div class="line"><span class="k">Изменение за месяц</span><span class="v" id="andreyBalance">0 ₽</span></div>
             <div class="delta" id="andreyDelta">—</div>
         </div>
         <div class="person-card lera">
             <h3>🩷 Леруська</h3>
             <div class="line"><span class="k">Доходы</span><span class="v income" id="leraIncome">0 ₽</span></div>
             <div class="line"><span class="k">Расходы</span><span class="v expense" id="leraExpense">0 ₽</span></div>
-            <div class="line"><span class="k">Баланс</span><span class="v" id="leraBalance">0 ₽</span></div>
+            <div class="line"><span class="k">Изменение за месяц</span><span class="v" id="leraBalance">0 ₽</span></div>
             <div class="delta" id="leraDelta">—</div>
         </div>
         <div class="person-card shared">
             <h3>🟡 Всего семьи (Андрей + Леруська)</h3>
             <div class="line"><span class="k">Доходы</span><span class="v income" id="sharedIncome">0 ₽</span></div>
             <div class="line"><span class="k">Расходы</span><span class="v expense" id="sharedExpense">0 ₽</span></div>
-            <div class="line"><span class="k">Баланс</span><span class="v" id="sharedBalance">0 ₽</span></div>
+            <div class="line"><span class="k">Изменение за месяц</span><span class="v" id="sharedBalance">0 ₽</span></div>
             <div class="delta" id="sharedDelta">—</div>
         </div>
     </div>
@@ -778,8 +782,12 @@ button {min-height:44px;border-radius:10px;} button:focus-visible,a:focus-visibl
             <div class="value expense" id="yearExpense">0 ₽</div>
         </div>
         <div class="stat">
-            <div class="label">Баланс за год</div>
+            <div class="label">Изменение за год</div>
             <div class="value" id="yearBalance">0 ₽</div>
+        </div>
+        <div class="stat">
+            <div class="label">На счетах сейчас</div>
+            <div class="value" id="yearActualBalance">0 ₽</div>
         </div>
         <div class="stat">
             <div class="label">Средний расход/мес. учёта</div>
@@ -2235,6 +2243,10 @@ function renderMonth() {
     const balEl = document.getElementById('monthBalance');
     balEl.textContent = fmt(balance);
     balEl.style.color = balance >= 0 ? '#4cff9a' : '#ff6b6b';
+    const actualEl = document.getElementById('monthActualBalance');
+    const actual = getActualTotalBalance();
+    actualEl.textContent = fmt(actual);
+    actualEl.style.color = actual >= 0 ? '#4cff9a' : '#ff6b6b';
 }
 
 function renderDebts() {
@@ -2317,6 +2329,10 @@ function renderYearStats() {
     const balEl = document.getElementById('yearBalance');
     balEl.textContent = fmt(balance);
     balEl.style.color = balance >= 0 ? '#4cff9a' : '#ff6b6b';
+    const actualEl = document.getElementById('yearActualBalance');
+    const actual = getActualTotalBalance();
+    actualEl.textContent = fmt(actual);
+    actualEl.style.color = actual >= 0 ? '#4cff9a' : '#ff6b6b';
 
     document.getElementById('yearAvgExpense').textContent = fmt(expense / countActiveCashFlowMonths(currentYear));
 }
@@ -2574,6 +2590,10 @@ function calcCurrentAccount(owner) {
         }
     });
     return cents / 100;
+}
+
+function getActualTotalBalance() {
+    return calcCurrentAccount('andrey') + calcCurrentAccount('lera') + calcCurrentAccount('cash');
 }
 
 function transferData(from, to, value, date) {
