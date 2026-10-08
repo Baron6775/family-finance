@@ -1,20 +1,24 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
 const F=require('./finance-core.js');
 const source=fs.readFileSync(__dirname+'/index.html','utf8').match(/^async function saveLoanOperation\([^]*?^\}/m)[0];
-function setup({fail=false,exists=true}={}) {
+function setup({fail=false,exists=true,today='2026-09-22'}={}) {
  const initial={id:'test',name:'Test',bodyDebt:100,interestRemaining:10,penalty:0,monthlyPayment:20,nextPaymentDate:'2026-10-01',nextPaymentBreakdown:{body:19,interest:1,penalty:0},asOfDate:'2026-09-01',revision:1};
  const store={loans:exists?{test:structuredClone(initial)}:{},transactions:{}};
  let seq=0,tail=Promise.resolve();
  const db={collection:collection=>({doc:id=>({collection,id:id||'tx-'+(++seq)})}),runTransaction:callback=>{
    const run=tail.then(async()=>{const pending=[];await callback({get:async ref=>({exists:!!store[ref.collection][ref.id],data:()=>structuredClone(store[ref.collection][ref.id])}),set:(ref,data)=>pending.push([ref,structuredClone(data)])});if(fail)throw Error('Network failure');for(const [ref,data]of pending)store[ref.collection][ref.id]=data;});tail=run.catch(()=>{});return run;
  }};
- const ctx=vm.createContext({F,db,initialLoans:[initial],COLLECTION:'transactions',todayISO:()=> '2026-09-22'});
+ const ctx=vm.createContext({F,db,initialLoans:[initial],COLLECTION:'transactions',todayISO:()=> today});
  vm.runInContext(source,ctx);return {ctx,store};
 }
 test('Atomic persistence: loan and transaction agree',async()=>{
  const {ctx,store}=setup();await ctx.saveLoanOperation('test','2026-09-22','andrey',20,'body');
  assert.equal(store.loans.test.bodyDebt,80);assert.equal(store.loans.test.revision,2);
  const tx=Object.values(store.transactions)[0];assert.equal(tx.amount,20);assert.equal(tx.breakdown.body,20);assert.equal(tx.loanId,'test');
+});
+test('Regular payment advances the next due date by one month',async()=>{
+ const {ctx,store}=setup({today:'2026-10-07'});await ctx.saveLoanOperation('test','2026-10-07','andrey',20,'regular',{body:19,interest:1,penalty:0});
+ assert.equal(store.loans.test.nextPaymentDate,'2026-11-01');
 });
 test('Failed write does not change the loan or create a transaction',async()=>{
  const {ctx,store}=setup({fail:true});await assert.rejects(ctx.saveLoanOperation('test','2026-09-22','andrey',20,'body'));

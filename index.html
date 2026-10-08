@@ -2756,6 +2756,11 @@ async function saveLoanOperation(id, date, owner, value, mode, enteredBreakdown)
         if(date<loan.asOfDate || (loan.lastPaymentDate && date<loan.lastPaymentDate)) throw new Error('Дата раньше сверки или последнего платежа. Нужна сверка истории.');
         if(enteredBreakdown) loan.nextPaymentBreakdown=enteredBreakdown;
         const {next,breakdown}=F.payment(loan,value,mode);
+        // A regular monthly payment closes one scheduled period. Early or partial
+        // payments keep the contractual due date until a statement reconciliation.
+        if(mode==='regular' && loan.nextPaymentDate && date>=loan.nextPaymentDate) {
+            next.nextPaymentDate=F.addMonths(loan.nextPaymentDate,1);
+        }
         next.lastPaymentDate=date; next.revision=(loan.revision||0)+1; next.lastTransactionId=txRef.id;
         tx.set(ref,next);
         tx.set(txRef,{date,owner,amount:F.amount(value),type:'loan-payment',category:mode==='personal'?'Долг':'Кредиты',

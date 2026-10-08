@@ -57,7 +57,7 @@ service cloud.firestore {
       allow update: if member() && loanValid(request.resource.data)
         && request.resource.data.revision == resource.data.revision+1
         && (admin() || (
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['bodyDebt','interestRemaining','penalty','totalRemaining','monthlyPayment','breakdownVerified','nextPaymentBreakdown','lastPaymentDate','revision','lastTransactionId'])
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['bodyDebt','interestRemaining','penalty','totalRemaining','monthlyPayment','breakdownVerified','nextPaymentBreakdown','nextPaymentDate','lastPaymentDate','revision','lastTransactionId'])
           && !exists(/databases/$(database)/documents/transactions/$(request.resource.data.lastTransactionId))
           && getAfter(/databases/$(database)/documents/transactions/$(request.resource.data.lastTransactionId)).data.loanId == id
           && (request.resource.data.monthlyPayment == resource.data.monthlyPayment || (request.resource.data.totalRemaining == 0 && request.resource.data.monthlyPayment == 0))
