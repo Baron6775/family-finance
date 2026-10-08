@@ -3040,7 +3040,7 @@ function confirmReconcile() {
 function enhanceInterface() {
     document.getElementById('transferDate').value=todayISO();
     const nav=document.createElement('nav'); nav.className='section-nav'; nav.setAttribute('aria-label','Разделы приложения');
-    document.querySelectorAll('#appContent > .card').forEach((card,i)=>{const h=card.querySelector('h2');if(!h)return;card.id='section-'+i;const link=document.createElement('a');link.href='#'+card.id;link.textContent=h.textContent;nav.appendChild(link);});
+    document.querySelectorAll('#appContent > .card').forEach((card,i)=>{if((card.id==='taxiCard'&&!isTaxiToolPage)||(isTaxiToolPage&&card.id!=='taxiCard'))return;const h=card.querySelector('h2');if(!h)return;card.id ||= 'section-'+i;const link=document.createElement('a');link.href='#'+card.id;link.textContent=h.textContent;nav.appendChild(link);});
     const taxiLink=[...nav.querySelectorAll('a')].find(link=>link.textContent.includes('Такси'));
     if(taxiLink) nav.insertBefore(taxiLink,nav.children[1]||null);
     document.getElementById('appContent').prepend(nav);
@@ -3066,6 +3066,18 @@ function enhanceInterface() {
     document.querySelectorAll('#actual-body,#actual-interest,#actual-penalty').forEach(el=>el.addEventListener('input',updateActualPayment));
 }
 
+const isTaxiToolPage=new URLSearchParams(location.search).get('tool')==='taxi';
+function configureToolPage(){
+    const taxiCard=document.getElementById('taxiCard');
+    if(!taxiCard)return;
+    if(!isTaxiToolPage){taxiCard.hidden=true;return;}
+    document.title='Такси — Андрей';
+    document.querySelector('#appContent > h1').textContent='🚕 Такси';
+    document.querySelector('#appContent > .subtitle').textContent='Личный инструмент Андрея: смены, заказы, доход и баллы.';
+    document.querySelectorAll('#appContent > .card').forEach(card=>{card.hidden=card!==taxiCard;});
+    taxiCard.hidden=false;
+}
+
 /* ============================================================
    СТАРТ
    ============================================================ */
@@ -3077,6 +3089,7 @@ function enhanceInterface() {
         if (e.key === 'Enter') checkLogin();
     });
     document.getElementById('loginEmail').focus();
+    configureToolPage();
     enhanceInterface();
     document.getElementById('list').addEventListener('click',e=>{const b=e.target.closest('button');if(b?.dataset.editId)openEditModal(b.dataset.editId);if(b?.dataset.deleteId)removeItemWithPassword(b.dataset.deleteId);});
     let authSequence=0;
