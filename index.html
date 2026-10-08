@@ -3041,6 +3041,8 @@ function enhanceInterface() {
     document.getElementById('transferDate').value=todayISO();
     const nav=document.createElement('nav'); nav.className='section-nav'; nav.setAttribute('aria-label','Разделы приложения');
     document.querySelectorAll('#appContent > .card').forEach((card,i)=>{const h=card.querySelector('h2');if(!h)return;card.id='section-'+i;const link=document.createElement('a');link.href='#'+card.id;link.textContent=h.textContent;nav.appendChild(link);});
+    const taxiLink=[...nav.querySelectorAll('a')].find(link=>link.textContent.includes('Такси'));
+    if(taxiLink) nav.insertBefore(taxiLink,nav.children[1]||null);
     document.getElementById('appContent').prepend(nav);
     document.querySelectorAll('label').forEach(l=>{const field=l.parentElement.querySelector('input,select');if(field?.id) l.htmlFor=field.id;});
     document.querySelectorAll('.modal-bg').forEach(bg=>{
