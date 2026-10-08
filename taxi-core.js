@@ -7,8 +7,9 @@
     const park=money(order.parkFee);
     const other=money(order.otherFee);
     const tax=money(order.tax);
-    const gross=money(order.amount);
-    return {gross,service,park,other,tax,points:Math.max(0,Math.round(n(order.points))),net:money(gross-service-park-other-tax)};
+    const fare=money(order.amount),tips=money(order.tips);
+    const gross=money(fare+tips);
+    return {fare,tips,gross,service,park,other,tax,points:Math.max(0,Math.round(n(order.points))),net:money(gross-service-park-other-tax)};
   }
   function shiftTotals(shift={}){
     const orders=Array.isArray(shift.orders)?shift.orders:[];

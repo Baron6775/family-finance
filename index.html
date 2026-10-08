@@ -3178,18 +3178,18 @@ function taxiAddOrder(){return taxiWrite(async()=>{
     if(!amount)throw new Error('Укажите оплату от пассажира.');
     const time=taxiEl('taxiOrderTime').value;
     if(!time)throw new Error('Укажите дату и время заказа.');
-    const order={amount,serviceFee:taxiRound(taxiNumber('taxiOrderService')),parkFee:taxiRound(taxiNumber('taxiOrderPark')),otherFee:taxiRound(taxiNumber('taxiOrderOther')),tax:taxiRound(taxiNumber('taxiOrderTax')),points:Math.round(taxiNumber('taxiOrderPoints')),tariff:taxiEl('taxiOrderTariff').value.trim().slice(0,80),paymentMethod:taxiEl('taxiOrderPayment').value,status:taxiEl('taxiOrderStatus').value,recordedAt:new Date(time).getTime()};
+    const order={amount,tips:taxiRound(taxiNumber('taxiOrderTips')),serviceFee:taxiRound(taxiNumber('taxiOrderService')),parkFee:taxiRound(taxiNumber('taxiOrderPark')),otherFee:taxiRound(taxiNumber('taxiOrderOther')),tax:taxiRound(taxiNumber('taxiOrderTax')),points:Math.round(taxiNumber('taxiOrderPoints')),tariff:taxiEl('taxiOrderTariff').value.trim().slice(0,80),paymentMethod:taxiEl('taxiOrderPayment').value,status:taxiEl('taxiOrderStatus').value,recordedAt:new Date(time).getTime()};
     const orders=taxiEditing?(shift.orders||[]).map((item,index)=>index===taxiEditing.orderIndex?order:item):[...(shift.orders||[]),order];
     const patch={orders,updatedAt:Date.now()};
     if(shift.status==='finished'){const totals=taxiShiftTotals({...shift,orders});patch.gross=totals.gross;patch.net=totals.rentedNet;patch.points=totals.points;}
     await db.collection(TAXI_SHIFTS_COLLECTION).doc(shift.id).update(patch);
     taxiEditing=null;taxiEl('taxiAddOrder').textContent='＋ Добавить заказ';
-    ['taxiOrderAmount','taxiOrderService','taxiOrderPark','taxiOrderOther','taxiOrderTax','taxiOrderPoints'].forEach(id=>taxiEl(id).value=id==='taxiOrderAmount'?'':'0');taxiEl('taxiOrderTariff').value='';taxiEl('taxiOrderTime').value=taxiLocalDateTime();
+    ['taxiOrderAmount','taxiOrderTips','taxiOrderService','taxiOrderPark','taxiOrderOther','taxiOrderTax','taxiOrderPoints'].forEach(id=>taxiEl(id).value=id==='taxiOrderAmount'?'':'0');taxiEl('taxiOrderTariff').value='';taxiEl('taxiOrderTime').value=taxiLocalDateTime();
 });}
 function taxiFinishShift(){return taxiWrite(async()=>{
     const shift=taxiActive();if(!shift)throw new Error('Сначала выйдите на смену.');
     const expected=Number(taxiEl('taxiCompletedOrders').value);if(!Number.isInteger(expected)||expected<0)throw new Error('Укажите количество выполненных заказов.');
-    if((shift.orders||[]).length!==expected)throw new Error(`Внесено заказов: ${(shift.orders||[]).length}. Указано выполненных: ${expected}. Добавьте все заказы или исправьте количество.`);
+    if((shift.orders||[]).length<expected)throw new Error(`Внесено заказов: ${(shift.orders||[]).length}. Указано выполненных: ${expected}. Добавьте недостающие заказы или исправьте количество.`);
     const fuelLiters=taxiEl('taxiFuelled').checked?taxiRound(taxiNumber('taxiFuelLiters')):0,fuelPrice=taxiEl('taxiFuelled').checked?taxiRound(taxiNumber('taxiFuelPrice')):0,fuel=taxiRound(fuelLiters*fuelPrice),wash=taxiEl('taxiWashed').checked?taxiRound(taxiNumber('taxiWash')):0;
     if(taxiEl('taxiFuelled').checked&&(!fuelLiters||!fuelPrice))throw new Error('Укажите литры и цену топлива или снимите отметку.');
     if(taxiEl('taxiWashed').checked&&!wash)throw new Error('Укажите сумму мойки или снимите отметку.');
@@ -3205,7 +3205,7 @@ function renderTaxi(){
     const paused=active&&active.pausedAt,timer=active?taxiDuration(active):0;
     taxiEl('taxiTimer').textContent=active?taxiTime(timer):'00:00:00';taxiEl('taxiState').textContent=!active?'Смена не начата':paused?'Смена на паузе':'Смена идёт';taxiEl('taxiState').className='taxi-state '+(!active?'off':paused?'paused':'');taxiEl('taxiShiftInfo').textContent=active?`Вышел на смену: ${new Date(active.startedAt).toLocaleString('ru-RU')}. Заказов: ${(active.orders||[]).length}.`:'Нажмите «Вышел на смену» — время зафиксируется автоматически.';
     const writable=taxiCanWrite();taxiEl('taxiStart').disabled=!writable||!!active;taxiEl('taxiPause').disabled=!writable||!active;taxiEl('taxiPause').textContent=paused?'▶ Продолжить смену':'⏸ Пауза';taxiEl('taxiFinish').disabled=!writable||!active;taxiEl('taxiAddOrder').disabled=!writable||!active;
-    taxiEl('taxiFinishProgress').textContent=!active?'Сначала выйдите на смену.':`Внесено заказов: ${(active.orders||[]).length}${Number.isInteger(Number(taxiEl('taxiCompletedOrders').value))?` из ${taxiEl('taxiCompletedOrders').value}`:''}.`;
+    taxiEl('taxiFinishProgress').textContent=!active?'Сначала выйдите на смену.':`Добавлено записей: ${(active.orders||[]).length}${Number.isInteger(Number(taxiEl('taxiCompletedOrders').value))?` · выполнено заказов: ${taxiEl('taxiCompletedOrders').value}`:''}. Записей может быть больше из-за отменённых, но оплаченных заказов.`;
     taxiEl('taxiActiveOrders').innerHTML=active&&(active.orders||[]).length?active.orders.map((order,index)=>{const total=TaxiCore.orderBreakdown(order);return `<article class="taxi-order"><b>Заказ №${index+1} · ${fmt(total.net)}</b><div class="section-hint">${escapeHtml(order.status||'Завершён')} · ${escapeHtml(order.paymentMethod||'Безналичные')} · ${escapeHtml(order.tariff||'Тариф не указан')} · ${new Date(order.recordedAt).toLocaleString('ru-RU')}</div><div class="taxi-order-summary"><span>Пассажир <b>${fmt(total.gross)}</b></span><span>Сервис <b>−${fmt(total.service)}</b></span><span>Парк <b>−${fmt(total.park)}</b></span><span>Прочее <b>−${fmt(total.other)}</b></span><span>Налог <b>−${fmt(total.tax)}</b></span><span>Баллы <b>${total.points}</b></span></div></article>`}).join(''):active?'<p class="section-hint">Заказов пока нет.</p>':'';
     taxiEl('taxiShiftsList').innerHTML=finished.length?finished.map(shift=>{const total=taxiShiftTotals(shift);return `<tr class="taxi-finished"><td>${new Date(shift.startedAt).toLocaleDateString('ru-RU')}</td><td>${taxiDurationLabel(taxiDuration(shift))}</td><td>${(shift.orders||[]).length}</td><td class="num">${fmt(total.gross)}</td><td class="num income">${fmt(total.rentedNet)}</td><td><button class="ghost" onclick="openTaxiDetails('${shift.id}')">Открыть</button></td></tr>`}).join(''):'<tr><td colspan="6" class="empty">Завершённых смен пока нет</td></tr>';
     renderTaxiComparison(finished);renderTaxiPerformance(finished);renderTaxiLoyalty();
@@ -3253,6 +3253,17 @@ function closeTaxiDetails(){taxiEl('taxiDetailsModal').classList.remove('show');
 setInterval(()=>{if(taxiActive())renderTaxi();},1000);
 window.taxiStartShift=taxiStartShift;window.taxiPauseShift=taxiPauseShift;window.taxiAddOrder=taxiAddOrder;window.taxiFinishShift=taxiFinishShift;window.toggleTaxiExpense=toggleTaxiExpense;window.openTaxiDetails=openTaxiDetails;window.closeTaxiDetails=closeTaxiDetails;window.editTaxiOrder=editTaxiOrder;window.deleteTaxiOrder=deleteTaxiOrder;window.deleteTaxiShift=deleteTaxiShift;window.saveTaxiGoal=saveTaxiGoal;window.loadTaxiGoal=loadTaxiGoal;window.saveTaxiSettlement=saveTaxiSettlement;window.renderTaxi=renderTaxi;window.renderTaxiLoyalty=renderTaxiLoyalty;
 document.addEventListener('keydown',event=>{if(event.key==='Escape')closeTaxiDetails()});
+taxiEl('taxiOrderAmount').parentElement.insertAdjacentHTML('afterend','<div class="field"><label for="taxiOrderTips">Чаевые, ₽</label><input id="taxiOrderTips" type="number" min="0" step="0.01" value="0" inputmode="decimal"></div>');
+taxiEl('taxiOrderStatus').insertAdjacentHTML('beforeend','<option>Отменён, но оплачен</option>');
+const taxiEditOrderBase=editTaxiOrder;
+editTaxiOrder=function(shiftId,orderIndex){taxiEditOrderBase(shiftId,orderIndex);const order=taxiShifts.find(shift=>shift.id===shiftId)?.orders?.[orderIndex];taxiEl('taxiOrderTips').value=order?.tips||0;};
+window.editTaxiOrder=editTaxiOrder;
+const taxiOpenDetailsBase=openTaxiDetails;
+openTaxiDetails=function(shiftId){taxiOpenDetailsBase(shiftId);const shift=taxiShifts.find(item=>item.id===shiftId);taxiEl('taxiDetailsContent').querySelectorAll('.taxi-order').forEach((card,index)=>{const tips=Number(shift?.orders?.[index]?.tips)||0;if(tips)card.querySelector('.taxi-detail-grid')?.insertAdjacentHTML('beforeend',`<div><small>Чаевые</small><b>+${fmt(tips)}</b></div>`);});};
+window.openTaxiDetails=openTaxiDetails;
+const taxiRenderBase=renderTaxi;
+renderTaxi=function(){taxiRenderBase();document.querySelectorAll('#taxiActiveOrders .taxi-order').forEach((card,index)=>{const order=taxiActive()?.orders?.[index];if(order?.tips){const row=document.createElement('span');row.innerHTML=`Чаевые <b>+${fmt(order.tips)}</b>`;card.querySelector('.taxi-order-summary')?.append(row);}});};
+window.renderTaxi=renderTaxi;
 taxiEl('taxiOrderTime').value=taxiLocalDateTime();taxiEl('taxiGoalMonth').value=taxiMonth(Date.now());
 }
 </script>

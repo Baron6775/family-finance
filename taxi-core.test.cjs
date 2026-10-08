@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const Taxi=require('./taxi-core.js');
 
 test('рассчитывает заказ по полной детализации',()=>{
-  assert.deepEqual(Taxi.orderBreakdown({amount:871,serviceFee:172.68,parkFee:43.55,otherFee:34.84,points:27}),{gross:871,service:172.68,park:43.55,other:34.84,tax:0,points:27,net:619.93});
+  assert.deepEqual(Taxi.orderBreakdown({amount:871,serviceFee:172.68,parkFee:43.55,otherFee:34.84,points:27}),{fare:871,tips:0,gross:871,service:172.68,park:43.55,other:34.84,tax:0,points:27,net:619.93});
 });
 test('личная машина исключает только аренду и комиссию парка',()=>{
   const total=Taxi.shiftTotals({orders:[{amount:1000,serviceFee:100,parkFee:50,otherFee:10,tax:20}],fuel:200,wash:100,rent:700});
