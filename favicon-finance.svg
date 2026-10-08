@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="finance" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5ea0ff"/>
+      <stop offset="1" stop-color="#2d5fd0"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="17" fill="url(#finance)"/>
+  <path d="M16 23.5c0-3 2.5-5.5 5.5-5.5h21c3 0 5.5 2.5 5.5 5.5v17c0 3-2.5 5.5-5.5 5.5h-21a5.5 5.5 0 0 1-5.5-5.5v-17Z" fill="#fff" fill-opacity=".97"/>
+  <path d="M18 27h28" stroke="#2d5fd0" stroke-width="4"/>
+  <circle cx="39.5" cy="36.5" r="4.5" fill="#38d996"/>
+  <path d="M24 36h8M24 41h5" stroke="#7da7ef" stroke-width="3" stroke-linecap="round"/>
+</svg>

@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Семейные финансы — Андрей и Леруська</title>
+<link id="appFavicon" rel="icon" type="image/svg+xml" href="favicon-finance.svg">
+<script>
+  if (new URLSearchParams(location.search).get('tool') === 'taxi') {
+    document.getElementById('appFavicon').href = 'favicon-taxi.svg';
+  }
+</script>
 <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
