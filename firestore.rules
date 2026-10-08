@@ -72,7 +72,35 @@ service cloud.firestore {
         && request.resource.data.after == getAfter(/databases/$(database)/documents/loans/$(request.resource.data.loanId)).data;
       allow update, delete: if false;
     }
+    function taxiShiftValid(d) {
+      return d.keys().hasOnly(['owner','status','date','startedAt','pausedAt','pausedMs','orders','fuel','rent','wash','completedOrders','finishedAt','gross','net','points','createdAt','updatedAt'])
+        && d.keys().hasAll(['owner','status','date','startedAt','pausedAt','pausedMs','orders','fuel','rent','wash','createdAt','updatedAt'])
+        && d.owner == 'andrey' && d.status in ['active','finished']
+        && d.date is string && d.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && d.startedAt is number && d.pausedMs is number && d.pausedMs >= 0
+        && (d.pausedAt == null || d.pausedAt is number)
+        && d.orders is list && d.orders.size() <= 250
+        && money(d.fuel) && money(d.rent) && money(d.wash)
+        && d.createdAt is number && d.updatedAt is number
+        && (d.status != 'finished' || (d.finishedAt is number && d.completedOrders is number && d.completedOrders >= 0 && money(d.gross) && money(d.net) && d.points is number && d.points >= 0));
+    }
+    function taxiGoalValid(d) {
+      return d.keys().hasOnly(['month','target','carriedPoints','updatedAt'])
+        && d.month is string && d.month.matches('^[0-9]{4}-[0-9]{2}$')
+        && d.target is number && d.target >= 0 && d.target <= 1000000
+        && d.carriedPoints is number && d.carriedPoints >= 0 && d.carriedPoints <= 1000000
+        && d.updatedAt is number;
+    }
+    match /taxiShifts/{id} {
+      allow read: if member();
+      allow create, update: if admin() && taxiShiftValid(request.resource.data);
+      allow delete: if admin();
+    }
+    match /taxiGoals/{id} {
+      allow read: if member();
+      allow create, update: if admin() && taxiGoalValid(request.resource.data);
+      allow delete: if admin();
+    }
     match /{document=**} { allow read, write: if false; }
   }
 }
-
