@@ -74,7 +74,7 @@ service cloud.firestore {
       allow update, delete: if false;
     }
     function taxiShiftValid(d) {
-      return d.keys().hasOnly(['owner','status','date','startedAt','pausedAt','pausedMs','orders','fuel','rent','wash','completedOrders','finishedAt','gross','net','points','createdAt','updatedAt'])
+      return d.keys().hasOnly(['owner','status','date','startedAt','pausedAt','pausedMs','orders','fuel','fuelLiters','fuelPrice','rent','wash','odometerStart','odometerEnd','completedOrders','finishedAt','gross','net','points','createdAt','updatedAt'])
         && d.keys().hasAll(['owner','status','date','startedAt','pausedAt','pausedMs','orders','fuel','rent','wash','createdAt','updatedAt'])
         && d.owner == 'andrey' && d.status in ['active','finished']
         && d.date is string && d.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
@@ -82,6 +82,8 @@ service cloud.firestore {
         && (d.pausedAt == null || d.pausedAt is number)
         && d.orders is list && d.orders.size() <= 250
         && money(d.fuel) && money(d.rent) && money(d.wash)
+        && (!('fuelLiters' in d) || money(d.fuelLiters)) && (!('fuelPrice' in d) || money(d.fuelPrice))
+        && (!('odometerStart' in d) || money(d.odometerStart)) && (!('odometerEnd' in d) || money(d.odometerEnd))
         && d.createdAt is number && d.updatedAt is number
         && (d.status != 'finished' || (d.finishedAt is number && d.completedOrders is number && d.completedOrders >= 0 && money(d.gross) && signedMoney(d.net) && d.points is number && d.points >= 0));
     }
@@ -100,6 +102,15 @@ service cloud.firestore {
     match /taxiGoals/{id} {
       allow read: if member();
       allow create, update: if admin() && taxiGoalValid(request.resource.data);
+      allow delete: if admin();
+    }
+    match /taxiSettlements/{id} {
+      allow read: if member();
+      allow create, update: if admin() && request.resource.data.keys().hasOnly(['owner','date','accrued','received','withheld','createdAt'])
+        && request.resource.data.owner == 'andrey' && request.resource.data.date is string
+        && request.resource.data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && money(request.resource.data.accrued) && money(request.resource.data.received) && money(request.resource.data.withheld)
+        && request.resource.data.createdAt is number;
       allow delete: if admin();
     }
     match /{document=**} { allow read, write: if false; }
