@@ -113,6 +113,15 @@ service cloud.firestore {
         && request.resource.data.createdAt is number;
       allow delete: if admin();
     }
+    match /taxiRefuels/{id} {
+      allow read: if member();
+      allow create, update: if admin() && request.resource.data.keys().hasOnly(['owner','at','odometer','liters','price','full','createdAt'])
+        && request.resource.data.owner == 'andrey' && request.resource.data.at is number
+        && money(request.resource.data.odometer) && money(request.resource.data.liters) && request.resource.data.liters > 0
+        && money(request.resource.data.price) && request.resource.data.price > 0
+        && request.resource.data.full is bool && request.resource.data.createdAt is number;
+      allow delete: if admin();
+    }
     match /{document=**} { allow read, write: if false; }
   }
 }

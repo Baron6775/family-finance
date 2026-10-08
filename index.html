@@ -1475,9 +1475,11 @@ let unsubscribeAccounts = null;
 let unsubscribeTaxiShifts = null;
 let unsubscribeTaxiGoals = null;
 let unsubscribeTaxiSettlements = null;
+let unsubscribeTaxiRefuels = null;
 let taxiShifts = [];
 let taxiGoals = {};
 let taxiSettlements = [];
+let taxiRefuels = [];
 let taxiEditing = null;
 
 (function initCurrentMonth() {
@@ -2801,9 +2803,9 @@ function subscribe() {
 }
 
 function lockApp() {
-    [unsubscribeTransactions,unsubscribeAccounts,unsubscribeLoans,unsubscribeTaxiShifts,unsubscribeTaxiGoals,unsubscribeTaxiSettlements].forEach(fn => fn && fn());
-    unsubscribeTransactions=unsubscribeAccounts=unsubscribeLoans=unsubscribeTaxiShifts=unsubscribeTaxiGoals=unsubscribeTaxiSettlements=null;
-    taxiShifts=[]; taxiGoals={}; taxiSettlements=[]; taxiEditing=null;
+    [unsubscribeTransactions,unsubscribeAccounts,unsubscribeLoans,unsubscribeTaxiShifts,unsubscribeTaxiGoals,unsubscribeTaxiSettlements,unsubscribeTaxiRefuels].forEach(fn => fn && fn());
+    unsubscribeTransactions=unsubscribeAccounts=unsubscribeLoans=unsubscribeTaxiShifts=unsubscribeTaxiGoals=unsubscribeTaxiSettlements=unsubscribeTaxiRefuels=null;
+    taxiShifts=[]; taxiGoals={}; taxiSettlements=[]; taxiRefuels=[]; taxiEditing=null;
     items=[]; accounts={andrey:0,lera:0,cash:0}; dataReady=false; currentRole=null;
     LOANS.splice(0,LOANS.length,...JSON.parse(JSON.stringify(initialLoans)));
     document.querySelectorAll('.modal-bg.show').forEach(m=>m.classList.remove('show'));
@@ -3124,6 +3126,7 @@ function configureToolPage(){
 const TAXI_SHIFTS_COLLECTION='taxiShifts';
 const TAXI_GOALS_COLLECTION='taxiGoals';
 const TAXI_SETTLEMENTS_COLLECTION='taxiSettlements';
+const TAXI_REFUELS_COLLECTION='taxiRefuels';
 const taxiEl=id=>document.getElementById(id);
 const taxiNumber=id=>Math.max(0,Number(taxiEl(id).value)||0);
 const taxiActive=()=>taxiShifts.find(shift=>shift.status==='active')||null;
@@ -3144,7 +3147,7 @@ async function taxiWrite(task){
     catch(error){ console.error(error); setStatus(error.message||'Не удалось сохранить данные такси.','err'); }
 }
 function subscribeTaxi(){
-    [unsubscribeTaxiShifts,unsubscribeTaxiGoals,unsubscribeTaxiSettlements].forEach(fn=>fn&&fn());
+    [unsubscribeTaxiShifts,unsubscribeTaxiGoals,unsubscribeTaxiSettlements,unsubscribeTaxiRefuels].forEach(fn=>fn&&fn());
     unsubscribeTaxiShifts=db.collection(TAXI_SHIFTS_COLLECTION).orderBy('startedAt','desc').onSnapshot(snapshot=>{
         taxiShifts=snapshot.docs.map(doc=>({...doc.data(),id:doc.id})); renderTaxi();
     },error=>setStatus('Не удалось загрузить смены такси: '+error.message,'err'));
@@ -3154,6 +3157,9 @@ function subscribeTaxi(){
     unsubscribeTaxiSettlements=db.collection(TAXI_SETTLEMENTS_COLLECTION).orderBy('date','desc').onSnapshot(snapshot=>{
         taxiSettlements=snapshot.docs.map(doc=>({...doc.data(),id:doc.id})); renderTaxi();
     },error=>setStatus('Не удалось загрузить расчёты с парком: '+error.message,'err'));
+    unsubscribeTaxiRefuels=db.collection(TAXI_REFUELS_COLLECTION).orderBy('at','asc').onSnapshot(snapshot=>{
+        taxiRefuels=snapshot.docs.map(doc=>({...doc.data(),id:doc.id})); renderTaxiRefuels();
+    },error=>setStatus('Не удалось загрузить журнал заправок: '+error.message,'err'));
 }
 function taxiOrderTotals(orders){return (orders||[]).reduce((sum,order)=>{const data=TaxiCore.orderBreakdown(order);sum.gross+=data.gross;sum.service+=data.service;sum.park+=data.park;sum.other+=data.other;sum.tax+=data.tax;sum.points+=data.points;return sum;},{gross:0,service:0,park:0,other:0,tax:0,points:0});}
 function taxiShiftTotals(shift){return TaxiCore.shiftTotals(shift);}
@@ -3264,7 +3270,15 @@ window.openTaxiDetails=openTaxiDetails;
 const taxiRenderBase=renderTaxi;
 renderTaxi=function(){taxiRenderBase();document.querySelectorAll('#taxiActiveOrders .taxi-order').forEach((card,index)=>{const order=taxiActive()?.orders?.[index];if(order?.tips){const row=document.createElement('span');row.innerHTML=`Чаевые <b>+${fmt(order.tips)}</b>`;card.querySelector('.taxi-order-summary')?.append(row);}});};
 window.renderTaxi=renderTaxi;
+const taxiRefuelsCard=document.createElement('section');
+taxiRefuelsCard.className='card';taxiRefuelsCard.style.cssText='margin:16px 0 0;background:#1b2028';
+taxiRefuelsCard.innerHTML='<h3 style="margin:0 0 8px">⛽ Журнал заправок</h3><p class="section-hint">Для точного расхода заполняйте пробег при каждой заправке. Расход рассчитывается между двумя заправками до полного бака.</p><div class="row"><div class="field"><label for="taxiRefuelAt">Дата и время</label><input id="taxiRefuelAt" type="datetime-local"></div><div class="field"><label for="taxiRefuelOdometer">Одометр, км</label><input id="taxiRefuelOdometer" type="number" min="0" step="0.1" inputmode="decimal"></div><div class="field"><label for="taxiRefuelLiters">Литров</label><input id="taxiRefuelLiters" type="number" min="0.01" step="0.01" inputmode="decimal"></div><div class="field"><label for="taxiRefuelPrice">Цена за литр, ₽</label><input id="taxiRefuelPrice" type="number" min="0.01" step="0.01" inputmode="decimal"></div><label style="align-self:end;margin-bottom:12px"><input id="taxiRefuelFull" type="checkbox" checked> До полного бака</label><button onclick="saveTaxiRefuel()">Записать заправку</button></div><div class="taxi-metrics"><div class="stat"><div class="label">Средний расход</div><div class="value income" id="taxiFuelConsumption">—</div></div><div class="stat"><div class="label">Последний расчёт</div><div class="value income" id="taxiFuelLastConsumption">—</div></div><div class="stat"><div class="label">Стоимость литра</div><div class="value" id="taxiFuelAveragePrice">—</div></div></div><div id="taxiRefuelsList"></div>';
+document.querySelector('#taxiCard > .taxi-grid').after(taxiRefuelsCard);
+function saveTaxiRefuel(){return taxiWrite(async()=>{const at=taxiEl('taxiRefuelAt').value,odometer=taxiRound(taxiNumber('taxiRefuelOdometer')),liters=taxiRound(taxiNumber('taxiRefuelLiters')),price=taxiRound(taxiNumber('taxiRefuelPrice'));if(!at||!odometer||!liters||!price)throw new Error('Заполните дату, одометр, литры и цену за литр.');await db.collection(TAXI_REFUELS_COLLECTION).add({owner:'andrey',at:new Date(at).getTime(),odometer,liters,price,full:taxiEl('taxiRefuelFull').checked,createdAt:Date.now()});taxiEl('taxiRefuelLiters').value='';taxiEl('taxiRefuelPrice').value='';taxiEl('taxiRefuelAt').value=taxiLocalDateTime();});}
+function renderTaxiRefuels(){const full=taxiRefuels.filter(item=>item.full).sort((a,b)=>a.at-b.at),segments=[];for(let i=1;i<full.length;i++){const km=Number(full[i].odometer)-Number(full[i-1].odometer);if(km>0)segments.push({km,liters:Number(full[i].liters),consumption:Number(full[i].liters)/km*100});}const liters=segments.reduce((sum,item)=>sum+item.liters,0),km=segments.reduce((sum,item)=>sum+item.km,0),average=km?liters/km*100:null,last=segments.at(-1);const avgPrice=taxiRefuels.length?taxiRefuels.reduce((sum,item)=>sum+Number(item.price||0),0)/taxiRefuels.length:0;taxiEl('taxiFuelConsumption').textContent=average?average.toFixed(1).replace('.',',')+' л / 100 км':'Нужны 2 полные';taxiEl('taxiFuelLastConsumption').textContent=last?last.consumption.toFixed(1).replace('.',',')+' л / 100 км':'—';taxiEl('taxiFuelAveragePrice').textContent=avgPrice?fmt(avgPrice):'—';taxiEl('taxiRefuelsList').innerHTML=taxiRefuels.length?taxiRefuels.slice().reverse().slice(0,8).map(item=>`<div class="taxi-order-summary" style="padding-top:9px"><span>${new Date(item.at).toLocaleString('ru-RU')} · ${item.odometer} км</span><span>${item.liters} л × ${fmt(item.price)}${item.full?' · полный бак':''}</span></div>`).join(''):'<p class="section-hint">Заправок пока нет.</p>';}
+window.saveTaxiRefuel=saveTaxiRefuel;
 taxiEl('taxiOrderTime').value=taxiLocalDateTime();taxiEl('taxiGoalMonth').value=taxiMonth(Date.now());
+taxiEl('taxiRefuelAt').value=taxiLocalDateTime();
 }
 </script>
 </body>
