@@ -390,6 +390,9 @@ button {min-height:44px;border-radius:10px;} button:focus-visible,a:focus-visibl
 .section-nav {display:flex;gap:8px;overflow-x:auto;position:sticky;top:0;background:#101318f5;padding:12px 0;margin-bottom:18px;z-index:20;scrollbar-width:thin;}
 .section-nav a {color:#c2d4f4;background:#202a39;border:1px solid #354158;padding:8px 12px;border-radius:9px;text-decoration:none;white-space:nowrap;font-size:13px;}
 .section-nav a:hover {background:#2c4264;}
+.advisor-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:14px 0;}
+.advisor-tip {border-left:3px solid #f7c948;background:#20252d;border-radius:0 10px 10px 0;padding:12px 14px;margin-top:10px;}
+.advisor-tip h3 {margin:0 0 4px;font-size:15px;color:#fff;}.advisor-tip p {margin:0;color:#c5cfdd;font-size:13px;line-height:1.55;}
 .account-card {padding:22px;border-radius:14px;} .account-card .balance {font-size:32px;letter-spacing:-1px;}
 .account-total {background:#17283b;border-color:#2d4865;padding:18px;}
 .login-box {max-width:400px;padding:36px;border-radius:22px;box-shadow:0 24px 80px #0006;}
@@ -723,6 +726,23 @@ button {min-height:44px;border-radius:10px;} button:focus-visible,a:focus-visibl
             <div class="line"><span class="k">Новый платёж</span><span class="v" id="calcMonthlyPay">— ₽</span></div>
         </div>
     </div>
+</div>
+
+<!-- ===== Финансовый советник ===== -->
+<div class="card">
+    <h2>✨ Финансовый советник</h2>
+    <p class="section-hint">Советы строятся по операциям, долгам и кредитам за выбранный месяц. Ничего не меняется автоматически: это только расчёт и рекомендации.</p>
+    <div class="row" style="align-items:end">
+        <div class="field"><label for="advisorCutPercent">Сокращение гибких трат, %</label><input id="advisorCutPercent" type="number" min="0" max="100" step="1" value="20" inputmode="numeric" oninput="renderAdvisor()"></div>
+    </div>
+    <div class="advisor-grid">
+        <div class="stat"><div class="label">Все обязательства</div><div class="value expense" id="advisorDebtTotal">0 ₽</div></div>
+        <div class="stat"><div class="label">Кредиты: полный остаток</div><div class="value expense" id="advisorLoansTotal">0 ₽</div></div>
+        <div class="stat"><div class="label">Личные долги</div><div class="value expense" id="advisorPersonalDebt">0 ₽</div></div>
+        <div class="stat"><div class="label">Можно добавить к досрочке</div><div class="value income" id="advisorExtra">0 ₽</div></div>
+    </div>
+    <div id="advisorTips"></div>
+    <p class="section-hint" style="margin-top:14px">Бесплатный расчёт работает на телефоне прямо в приложении. Текстовая ИИ‑модель будет подключена отдельным защищённым серверным этапом.</p>
 </div>
 
 <!-- ===== По людям ===== -->
@@ -1801,6 +1821,57 @@ function computeCategories(arr, kind) {
     return { list, total };
 }
 
+function buildAdvisorPlan({income, expense, flexibleExpense, personalDebt, loanDebt, cutPercent}) {
+    const cut = Math.max(0, Math.min(100, Number(cutPercent) || 0)) / 100;
+    const monthlyChange = F.money(Number(income || 0) - Number(expense || 0));
+    const saving = F.money(Number(flexibleExpense || 0) * cut);
+    return {
+        totalDebt: F.money(Number(personalDebt || 0) + Number(loanDebt || 0)),
+        monthlyChange,
+        saving,
+        extraForDebt: F.money(Math.max(0, monthlyChange) + saving)
+    };
+}
+
+function renderAdvisor() {
+    const monthItems = getMonthItems(currentYear, currentMonth);
+    const income = sumIncomes(monthItems);
+    const expense = sumExpenses(monthItems);
+    const personalDebt = computeDebts().totalOwe;
+    const loanDebt = F.money(LOANS.reduce((sum, loan) => sum + Number(loan.totalRemaining || 0), 0));
+    const flexibleCategories = new Set(['Прочее','Сигареты','Красота','Развлечения','Кафе','Подписки']);
+    const flexibleRows = monthItems.filter(item => isExpenseLike(item.type) && flexibleCategories.has(item.category));
+    const flexibleExpense = F.money(flexibleRows.reduce((sum, item) => sum + Number(item.amount || 0), 0));
+    const cutPercent = document.getElementById('advisorCutPercent').value;
+    const plan = buildAdvisorPlan({ income, expense, flexibleExpense, personalDebt, loanDebt, cutPercent });
+
+    document.getElementById('advisorDebtTotal').textContent = fmt(plan.totalDebt);
+    document.getElementById('advisorLoansTotal').textContent = fmt(loanDebt);
+    document.getElementById('advisorPersonalDebt').textContent = fmt(personalDebt);
+    document.getElementById('advisorExtra').textContent = fmt(plan.extraForDebt);
+
+    const tips = [];
+    if (plan.monthlyChange < 0) {
+        tips.push(['Сначала закрыть дефицит месяца', `Расходы превышают доходы на ${fmt(Math.abs(plan.monthlyChange))}. До досрочных платежей лучше сократить гибкие траты или увеличить доход.`]);
+    } else {
+        tips.push(['Дополнительный платёж по долгам', `После всех операций за ${MONTHS[currentMonth].toLowerCase()} свободно ${fmt(plan.monthlyChange)}. При сокращении гибких трат на ${Math.max(0, Math.min(100, Number(cutPercent) || 0))}% можно направить до ${fmt(plan.extraForDebt)} дополнительно.`]);
+    }
+    if (flexibleExpense > 0) {
+        const categories = new Map();
+        flexibleRows.forEach(item => categories.set(item.category, (categories.get(item.category) || 0) + Number(item.amount || 0)));
+        const top = [...categories.entries()].sort((a,b) => b[1] - a[1])[0];
+        tips.push(['Где искать экономию', `Гибкие траты за месяц: ${fmt(flexibleExpense)}. Самая крупная категория — «${escapeHtml(top[0])}» (${fmt(top[1])}). Начните с неё, не уменьшая обязательные платежи.`]);
+    }
+    const priorityLoan = LOANS.filter(loan => !loan.isPersonalDebt && Number(loan.bodyDebt || 0) > 0)
+        .sort((a,b) => Number(b.penalty || 0) - Number(a.penalty || 0) || Number(b.rate || 0) - Number(a.rate || 0))[0];
+    if (priorityLoan) {
+        const reason = Number(priorityLoan.penalty || 0) > 0 ? `неустойка ${fmt(priorityLoan.penalty)}` : `ставка ${Number(priorityLoan.rate || 0).toFixed(2)}%`;
+        tips.push(['Очередность досрочных платежей', `После обязательных платежей проверьте досрочное погашение кредита «${escapeHtml(priorityLoan.name)}»: сейчас у него ${reason}. Точный эффект можно посмотреть в калькуляторе досрочного погашения.`]);
+    }
+    tips.push(['Контроль', 'Советник не создаёт платежи, не редактирует операции и не меняет кредитные остатки. Любой платёж вы подтверждаете сами.']);
+    document.getElementById('advisorTips').innerHTML = tips.map(([title, text]) => `<article class="advisor-tip"><h3>${title}</h3><p>${text}</p></article>`).join('');
+}
+
 function renderCategoryBlock(containerId, arr, kind) {
     const container = document.getElementById(containerId);
     const { list } = computeCategories(arr, kind);
@@ -2158,6 +2229,7 @@ function renderAll() {
     renderDebts();
     renderLoans();
     renderLoanSummary();
+    renderAdvisor();
     renderPeople();
     renderCategories();
     renderYearStats();
