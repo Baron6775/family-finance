@@ -782,7 +782,7 @@ button {min-height:44px;border-radius:10px;} button:focus-visible,a:focus-visibl
             <div class="value" id="yearBalance">0 ₽</div>
         </div>
         <div class="stat">
-            <div class="label">Средний расход/мес</div>
+            <div class="label">Средний расход/мес. учёта</div>
             <div class="value expense" id="yearAvgExpense">0 ₽</div>
         </div>
     </div>
@@ -1730,6 +1730,15 @@ function getYearTotals(y) {
     return result;
 }
 
+function countActiveCashFlowMonths(y) {
+    let count = 0;
+    for (let m = 0; m < 12; m++) {
+        const monthItems = getMonthItems(y, m);
+        if (sumIncomes(monthItems) > 0 || sumExpenses(monthItems) > 0) count++;
+    }
+    return count || 1;
+}
+
 /* ============================================================
    ДОЛГИ
    ============================================================ */
@@ -2309,8 +2318,7 @@ function renderYearStats() {
     balEl.textContent = fmt(balance);
     balEl.style.color = balance >= 0 ? '#4cff9a' : '#ff6b6b';
 
-    const monthsWithData = currentYear === new Date().getFullYear() ? new Date().getMonth()+1 : currentYear < new Date().getFullYear() ? 12 : Math.max(1,...yearItems.map(it=>Number(it.date.slice(5,7))));
-    document.getElementById('yearAvgExpense').textContent = fmt(expense / monthsWithData);
+    document.getElementById('yearAvgExpense').textContent = fmt(expense / countActiveCashFlowMonths(currentYear));
 }
 
 function renderMonthDeltas() {
